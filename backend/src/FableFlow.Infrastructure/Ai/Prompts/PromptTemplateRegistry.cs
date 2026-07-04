@@ -44,9 +44,9 @@ public static class PromptTemplateRegistry
           bloque tout nom propre ou marque déposée. Il doit donc décrire la MÊME scène de façon
           purement visuelle et générique, SANS AUCUN nom propre, marque, titre de franchise ou nom de
           personnage : décris plutôt l'apparence physique, les couleurs, la posture, l'environnement.
-          Exemple : au lieu de « Pikachu », écris « une petite créature jaune aux pouvoirs électriques,
-          avec de longues oreilles et des joues rouges ». Au lieu de « Spider-Man », écris « un héros
-          masqué en combinaison rouge et bleue qui lance des fils depuis ses mains ».
+          Exemple : au lieu de « Pikachu », écris « une petite créature souris jaune aux pouvoirs électriques,
+          avec de longues oreilles et des joues rouges ». Au lieu de « Spider-Man », écris « un super héros homme araignée
+          masqué en combinaison rouge et bleue qui lance des toiles depuis ses mains ».
         """;
 
 
