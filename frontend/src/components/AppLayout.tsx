@@ -1,8 +1,8 @@
-import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-import type { ReactNode } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
-import { ThemeToggleButton } from './ThemeToggleButton';
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
+import type { ReactNode } from "react";
+import { Link as RouterLink } from "react-router-dom";
+import { ThemeToggleButton } from "./ThemeToggleButton";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -15,19 +15,19 @@ interface AppLayoutProps {
  */
 export function AppLayout({ children }: AppLayoutProps) {
   return (
-    <Box sx={{ minHeight: '100dvh' }}>
+    <Box sx={{ minHeight: "100dvh" }}>
       <Box
         sx={{
-          position: 'sticky',
+          position: "sticky",
           top: 0,
           zIndex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
           px: { xs: 1, sm: 2 },
           py: 0.5,
-          pt: 'max(0.5rem, env(safe-area-inset-top))',
-          bgcolor: 'background.default',
+          pt: "max(0.5rem, env(safe-area-inset-top))",
+          bgcolor: "background.default",
         }}
       >
         <Typography
@@ -36,12 +36,12 @@ export function AppLayout({ children }: AppLayoutProps) {
           variant="h6"
           sx={{
             fontWeight: 700,
-            color: 'text.primary',
-            textDecoration: 'none',
+            color: "text.primary",
+            textDecoration: "none",
             px: 1,
             minHeight: 48,
-            display: 'flex',
-            alignItems: 'center',
+            display: "flex",
+            alignItems: "center",
           }}
         >
           FableFlow

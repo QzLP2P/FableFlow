@@ -1,17 +1,17 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import Container from '@mui/material/Container';
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
-import CircularProgress from '@mui/material/CircularProgress';
-import Alert from '@mui/material/Alert';
-import { useThemes } from '../hooks/useThemes';
-import { useStoryPremises } from '../hooks/useStoryPremises';
-import { useStartAdventure } from '../hooks/useStartAdventure';
-import { ThemeCard } from '../components/ThemeCard';
-import { PremiseSelector } from '../components/PremiseSelector';
-import { SceneCountSelector } from '../components/SceneCountSelector';
+import Alert from "@mui/material/Alert";
+import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
+import Container from "@mui/material/Container";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { PremiseSelector } from "../components/PremiseSelector";
+import { SceneCountSelector } from "../components/SceneCountSelector";
+import { ThemeCard } from "../components/ThemeCard";
+import { useStartAdventure } from "../hooks/useStartAdventure";
+import { useStoryPremises } from "../hooks/useStoryPremises";
+import { useThemes } from "../hooks/useThemes";
 
 const MIN_SCENES = 3;
 const MAX_SCENES = 12;
@@ -24,7 +24,9 @@ export function HomePage() {
   const startAdventure = useStartAdventure();
 
   const [selectedThemeId, setSelectedThemeId] = useState<string | null>(null);
-  const [selectedPremiseIndex, setSelectedPremiseIndex] = useState<number | null>(null);
+  const [selectedPremiseIndex, setSelectedPremiseIndex] = useState<
+    number | null
+  >(null);
   const [sceneCount, setSceneCount] = useState(DEFAULT_SCENES);
 
   const {
@@ -35,7 +37,8 @@ export function HomePage() {
     refetch: refetchPremises,
   } = useStoryPremises(selectedThemeId);
 
-  const selectedPremise = selectedPremiseIndex !== null ? premises?.[selectedPremiseIndex] : null;
+  const selectedPremise =
+    selectedPremiseIndex !== null ? premises?.[selectedPremiseIndex] : null;
 
   const handleSelectTheme = (themeId: string) => {
     setSelectedThemeId(themeId);
@@ -54,7 +57,8 @@ export function HomePage() {
         narrativePremise: `${selectedPremise.title} — ${selectedPremise.hook}`,
       },
       {
-        onSuccess: (adventure) => navigate(`/adventures/${adventure.adventureId}`),
+        onSuccess: (adventure) =>
+          navigate(`/adventures/${adventure.adventureId}`),
       },
     );
   };
@@ -67,7 +71,8 @@ export function HomePage() {
             Prêt pour l'aventure ?
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Choisis un thème et une durée pour démarrer ton aventure interactive.
+            Choisis un thème et une durée pour démarrer ton aventure
+            interactive.
           </Typography>
         </Stack>
 
@@ -133,14 +138,17 @@ export function HomePage() {
           variant="contained"
           size="large"
           fullWidth
-          disabled={!selectedThemeId || !selectedPremise || startAdventure.isPending}
+          disabled={
+            !selectedThemeId || !selectedPremise || startAdventure.isPending
+          }
           onClick={handleStart}
           sx={{ py: 1.5 }}
         >
-          {startAdventure.isPending ? 'Préparation de l\u2019aventure…' : 'Commencer l\u2019aventure'}
+          {startAdventure.isPending
+            ? "Préparation de l\u2019aventure…"
+            : "Commencer l\u2019aventure"}
         </Button>
       </Stack>
     </Container>
   );
 }
-

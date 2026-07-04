@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
-import { getStoryPremises } from '../api/apiClient';
+import { useQuery } from "@tanstack/react-query";
+import { getStoryPremises } from "../api/apiClient";
 
 const DEFAULT_PREMISE_COUNT = 3;
 
@@ -8,9 +8,12 @@ const DEFAULT_PREMISE_COUNT = 3;
  * thème n'est sélectionné. Le bouton "Autres idées" appelle `refetch` pour régénérer de
  * nouvelles propositions via le LLM (la clé de requête reste stable, `refetch` force l'appel).
  */
-export function useStoryPremises(themeId: string | null, count = DEFAULT_PREMISE_COUNT) {
+export function useStoryPremises(
+  themeId: string | null,
+  count = DEFAULT_PREMISE_COUNT,
+) {
   return useQuery({
-    queryKey: ['story-premises', themeId, count],
+    queryKey: ["story-premises", themeId, count],
     queryFn: () => getStoryPremises(themeId as string, count),
     enabled: themeId !== null,
     staleTime: 0,

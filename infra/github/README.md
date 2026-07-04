@@ -71,15 +71,15 @@ az role assignment create --assignee-object-id $principalId --assignee-principal
 
 ## Configuration actuelle (QzLP2P/FableFlow)
 
-| Ressource | Valeur |
-| --- | --- |
-| Tenant Microsoft Entra | Bouygues Telecom Business Solution (`37f626ab-77a8-4087-9c44-ef395de90a98`) |
-| Abonnement Azure | Visual Studio Enterprise (`a605300a-0c9e-4b29-b63c-607436903b70`) |
-| Resource group | `rg-fableflow` (`westeurope`) |
+| Ressource               | Valeur                                                                                                |
+| ----------------------- | ----------------------------------------------------------------------------------------------------- |
+| Tenant Microsoft Entra  | Bouygues Telecom Business Solution (`37f626ab-77a8-4087-9c44-ef395de90a98`)                           |
+| Abonnement Azure        | Visual Studio Enterprise (`a605300a-0c9e-4b29-b63c-607436903b70`)                                     |
+| Resource group          | `rg-fableflow` (`westeurope`)                                                                         |
 | Identité de déploiement | Identité managée `id-fableflow-github-deploy` (Option B, app registration indisponible sur ce tenant) |
-| Federated credentials | `repo:QzLP2P/FableFlow:ref:refs/heads/master` + `repo:QzLP2P/FableFlow:environment:production` |
-| Rôles attribués | `Contributor` + `User Access Administrator` sur `rg-fableflow` |
-| Environnement GitHub | `production` créé sur le repo |
+| Federated credentials   | `repo:QzLP2P/FableFlow:ref:refs/heads/master` + `repo:QzLP2P/FableFlow:environment:production`        |
+| Rôles attribués         | `Contributor` + `User Access Administrator` sur `rg-fableflow`                                        |
+| Environnement GitHub    | `production` créé sur le repo                                                                         |
 
 > ⚠️ La branche par défaut de ce repo est **`master`**, pas `main`. Les federated credentials et les déclencheurs `push` des workflows ciblent `master`. Si vous renommez la branche par défaut, mettez à jour les deux en même temps.
 
@@ -89,20 +89,20 @@ Dans **Settings → Secrets and variables → Actions** du repository (déjà fa
 
 ### Secrets (`Secrets` tab)
 
-| Nom | Valeur | Statut |
-| --- | --- | --- |
-| `AZURE_CLIENT_ID` | `clientId` de l'identité managée `id-fableflow-github-deploy` | ✅ Configuré |
-| `AZURE_TENANT_ID` | `37f626ab-77a8-4087-9c44-ef395de90a98` | ✅ Configuré |
-| `AZURE_SUBSCRIPTION_ID` | `a605300a-0c9e-4b29-b63c-607436903b70` | ✅ Configuré |
-| `AZURE_STATIC_WEB_APPS_API_TOKEN` | Jeton de déploiement de la Static Web App | ✅ Configuré |
+| Nom                               | Valeur                                                        | Statut       |
+| --------------------------------- | ------------------------------------------------------------- | ------------ |
+| `AZURE_CLIENT_ID`                 | `clientId` de l'identité managée `id-fableflow-github-deploy` | ✅ Configuré |
+| `AZURE_TENANT_ID`                 | `37f626ab-77a8-4087-9c44-ef395de90a98`                        | ✅ Configuré |
+| `AZURE_SUBSCRIPTION_ID`           | `a605300a-0c9e-4b29-b63c-607436903b70`                        | ✅ Configuré |
+| `AZURE_STATIC_WEB_APPS_API_TOKEN` | Jeton de déploiement de la Static Web App                     | ✅ Configuré |
 
 ### Variables (`Variables` tab, non sensibles)
 
-| Nom | Valeur | Statut |
-| --- | --- | --- |
-| `AZURE_RESOURCE_GROUP` | `rg-fableflow` | ✅ Configuré |
-| `AZURE_LOCATION` | `westeurope` | ✅ Configuré |
-| `API_BASE_URL` | `https://app-fableflow-q6hxb5lxsgsdo.azurewebsites.net` | ✅ Configuré |
+| Nom                    | Valeur                                                  | Statut       |
+| ---------------------- | ------------------------------------------------------- | ------------ |
+| `AZURE_RESOURCE_GROUP` | `rg-fableflow`                                          | ✅ Configuré |
+| `AZURE_LOCATION`       | `westeurope`                                            | ✅ Configuré |
+| `API_BASE_URL`         | `https://app-fableflow-q6hxb5lxsgsdo.azurewebsites.net` | ✅ Configuré |
 
 ## 3. Récupérer le jeton de déploiement de la Static Web App
 
@@ -123,11 +123,11 @@ Copier la valeur dans le secret GitHub `AZURE_STATIC_WEB_APPS_API_TOKEN` (`gh se
 
 ## Déploiement effectué (2026-07-04)
 
-| Composant | URL |
-| --- | --- |
-| API | https://app-fableflow-q6hxb5lxsgsdo.azurewebsites.net |
-| Frontend | https://lemon-ground-09d7f7803.7.azurestaticapps.net |
-| Key Vault | https://kv-q6hxb5lxsgsdo.vault.azure.net/ |
+| Composant | URL                                                   |
+| --------- | ----------------------------------------------------- |
+| API       | https://app-fableflow-q6hxb5lxsgsdo.azurewebsites.net |
+| Frontend  | https://lemon-ground-09d7f7803.7.azurestaticapps.net  |
+| Key Vault | https://kv-q6hxb5lxsgsdo.vault.azure.net/             |
 
 Vérifié en production : `/api/themes`, `/health` OK côté API ; le frontend charge bien les thèmes depuis l'API (CORS opérationnel).
 
@@ -135,4 +135,3 @@ Vérifié en production : `/api/themes`, `/health` OK côté API ; le frontend c
 
 - Aucune clé API Azure OpenAI/Foundry n'est nécessaire en production : l'App Service utilise son identité managée (`UseManagedIdentity: true`) pour s'authentifier auprès d'Azure OpenAI et d'Azure AI Foundry.
 - Le principal de déploiement OIDC n'a de droits que sur le groupe de ressources ciblé (scope minimal), jamais sur l'abonnement entier.
-

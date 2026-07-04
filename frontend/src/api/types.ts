@@ -24,7 +24,7 @@ export interface SceneDto {
   choices: ChoiceDto[];
 }
 
-export type AdventureStatus = 'InProgress' | 'Won' | 'Lost' | 'Completed';
+export type AdventureStatus = "InProgress" | "Won" | "Lost" | "Completed";
 
 export interface AdventureDto {
   adventureId: string;

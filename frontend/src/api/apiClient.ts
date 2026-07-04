@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from "axios";
 import type {
   AdventureDto,
   AdventureHistoryDto,
@@ -6,23 +6,26 @@ import type {
   StartAdventureRequest,
   StoryPremiseDto,
   ThemeDto,
-} from './types';
+} from "./types";
 
-const baseURL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5080';
+const baseURL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5080";
 
 export const apiClient = axios.create({
   baseURL,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
 export async function getThemes(): Promise<ThemeDto[]> {
-  const { data } = await apiClient.get<ThemeDto[]>('/api/themes');
+  const { data } = await apiClient.get<ThemeDto[]>("/api/themes");
   return data;
 }
 
-export async function getStoryPremises(themeId: string, count = 3): Promise<StoryPremiseDto[]> {
+export async function getStoryPremises(
+  themeId: string,
+  count = 3,
+): Promise<StoryPremiseDto[]> {
   const { data } = await apiClient.get<StoryPremiseDto[]>(
     `/api/themes/${themeId}/story-premises`,
     { params: { count } },
@@ -30,13 +33,20 @@ export async function getStoryPremises(themeId: string, count = 3): Promise<Stor
   return data;
 }
 
-export async function startAdventure(request: StartAdventureRequest): Promise<AdventureDto> {
-  const { data } = await apiClient.post<AdventureDto>('/api/adventures', request);
+export async function startAdventure(
+  request: StartAdventureRequest,
+): Promise<AdventureDto> {
+  const { data } = await apiClient.post<AdventureDto>(
+    "/api/adventures",
+    request,
+  );
   return data;
 }
 
 export async function getAdventure(adventureId: string): Promise<AdventureDto> {
-  const { data } = await apiClient.get<AdventureDto>(`/api/adventures/${adventureId}`);
+  const { data } = await apiClient.get<AdventureDto>(
+    `/api/adventures/${adventureId}`,
+  );
   return data;
 }
 
@@ -51,7 +61,11 @@ export async function makeChoice(
   return data;
 }
 
-export async function getAdventureHistory(adventureId: string): Promise<AdventureHistoryDto> {
-  const { data } = await apiClient.get<AdventureHistoryDto>(`/api/adventures/${adventureId}/history`);
+export async function getAdventureHistory(
+  adventureId: string,
+): Promise<AdventureHistoryDto> {
+  const { data } = await apiClient.get<AdventureHistoryDto>(
+    `/api/adventures/${adventureId}/history`,
+  );
   return data;
 }
