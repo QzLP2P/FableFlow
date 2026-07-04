@@ -1,0 +1,61 @@
+name: deploy-backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-backend:
+    name: Publish & deploy API
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: backend/global.json
+
+      - name: Restore & test
+        run: |
+          dotnet restore
+          dotnet build --no-restore --configuration Release
+          dotnet test --no-build --configuration Release
+
+      - name: Publish
+        run: dotnet publish src/FableFlow.Api/FableFlow.Api.csproj --configuration Release --output ./publish
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Discover App Service name
+        id: discover
+        run: |
+          name=$(az webapp list \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --query "[?tags.application=='fableflow'].name | [0]" -o tsv)
+          if [ -z "$name" ]; then
+            echo "::error::Aucun App Service trouvé (déployez d'abord l'infra via deploy-infra)." && exit 1
+          fi
+          echo "app_name=$name" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy to Azure App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ steps.discover.outputs.app_name }}
+          package: backend/publish

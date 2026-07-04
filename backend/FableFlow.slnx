@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/FableFlow.Api/FableFlow.Api.csproj" />
+    <Project Path="src/FableFlow.Application/FableFlow.Application.csproj" />
+    <Project Path="src/FableFlow.Domain/FableFlow.Domain.csproj" />
+    <Project Path="src/FableFlow.Infrastructure/FableFlow.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/FableFlow.Api.Tests/FableFlow.Api.Tests.csproj" />
+    <Project Path="tests/FableFlow.Application.Tests/FableFlow.Application.Tests.csproj" />
+    <Project Path="tests/FableFlow.Domain.Tests/FableFlow.Domain.Tests.csproj" />
+  </Folder>
+</Solution>
