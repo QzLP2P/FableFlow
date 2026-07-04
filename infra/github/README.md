@@ -8,6 +8,8 @@ Ce dossier documente la configuration Azure/GitHub nécessaire aux workflows `.g
 
 Ce principal est **différent** de l'identité managée applicative créée par `infra/bicep/modules/identity.bicep` (celle-ci sert uniquement à l'application pour appeler Key Vault/Azure AI Foundry à l'exécution). Le principal ci-dessous sert uniquement à GitHub Actions pour déployer.
 
+> ⚠️ **Vérifier la branche par défaut du repo avant de créer les federated credentials** (`gh repo view <repo> --json defaultBranchRef --jq '.defaultBranchRef.name'`). Les exemples ci-dessous utilisent `main`, mais **QzLP2P/FableFlow utilise `master`** (voir section « Configuration actuelle ») — le subject du federated credential et le déclencheur `push.branches` des workflows doivent correspondre exactement, sinon `azure/login@v2` échoue silencieusement (aucun credential ne correspond) et les workflows ne se déclenchent jamais.
+
 ### Option A — App registration (nécessite un droit annuaire Microsoft Entra)
 
 ```powershell
@@ -42,10 +44,10 @@ az group create --name $resourceGroup --location $location
 
 az identity create --name id-fableflow-github-deploy --resource-group $resourceGroup --location $location
 
-az identity federated-credential create --name github-main-branch `
+az identity federated-credential create --name github-master-branch `
   --identity-name id-fableflow-github-deploy --resource-group $resourceGroup `
   --issuer "https://token.actions.githubusercontent.com" `
-  --subject "repo:$repo`:ref:refs/heads/main" `
+  --subject "repo:$repo`:ref:refs/heads/master" `
   --audiences "api://AzureADTokenExchange"
 
 az identity federated-credential create --name github-production-environment `
@@ -75,7 +77,7 @@ az role assignment create --assignee-object-id $principalId --assignee-principal
 | Abonnement Azure | Visual Studio Enterprise (`a605300a-0c9e-4b29-b63c-607436903b70`) |
 | Resource group | `rg-fableflow` (`westeurope`) |
 | Identité de déploiement | Identité managée `id-fableflow-github-deploy` (Option B, app registration indisponible sur ce tenant) |
-| Federated credentials | `repo:QzLP2P/FableFlow:ref:refs/heads/main` + `repo:QzLP2P/FableFlow:environment:production` |
+| Federated credentials | `repo:QzLP2P/FableFlow:ref:refs/heads/master` + `repo:QzLP2P/FableFlow:environment:production` |
 | Rôles attribués | `Contributor` + `User Access Administrator` sur `rg-fableflow` |
 | Environnement GitHub | `production` créé sur le repo |
 
