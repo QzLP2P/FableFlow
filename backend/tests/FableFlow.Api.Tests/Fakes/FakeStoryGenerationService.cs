@@ -19,7 +19,8 @@ public sealed class FakeStoryGenerationService : IStoryGenerationService
           $"Fin de l'aventure (après la scène {prompt.SceneNumber}).",
           [],
           "Résumé final de l'aventure.",
-          []));
+          [],
+          "Description générique de la scène finale."));
     }
 
     GeneratedChoice[] choices =
@@ -32,6 +33,7 @@ public sealed class FakeStoryGenerationService : IStoryGenerationService
         $"Texte généré pour la scène {prompt.SceneNumber}.",
         choices,
         $"Résumé jusqu'à la scène {prompt.SceneNumber}.",
-        []));
+        [],
+        "Description générique de la scène."));
   }
 }

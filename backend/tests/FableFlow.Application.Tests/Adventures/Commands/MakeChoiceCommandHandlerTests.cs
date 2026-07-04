@@ -59,7 +59,8 @@ public class MakeChoiceCommandHandlerTests
             "Suite de l'histoire",
             [new GeneratedChoice("a", "Continuer", ChoiceOutcome.Neutral)],
             "Résumé mis à jour",
-            []));
+            [],
+            "Description générique de la scène"));
 
     var result = await _sut.Handle(new MakeChoiceCommand(session.Id, "good"), CancellationToken.None);
 
@@ -83,7 +84,7 @@ public class MakeChoiceCommandHandlerTests
         .Returns(new StoryPrompt("system", "user", "v1", SceneKind.Ending, 1));
 
     _storyGeneration.GenerateSceneAsync(Arg.Any<StoryPrompt>(), Arg.Any<CancellationToken>())
-        .Returns(new GeneratedScene("Fin tragique", [], "Résumé final", []));
+        .Returns(new GeneratedScene("Fin tragique", [], "Résumé final", [], "Description générique de la scène"));
 
     var result = await _sut.Handle(new MakeChoiceCommand(session.Id, "bad"), CancellationToken.None);
 

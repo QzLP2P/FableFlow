@@ -92,7 +92,14 @@ public sealed class AzureOpenAIStoryGenerationService : IStoryGenerationService
                 : ChoiceOutcome.Neutral))
         .ToArray();
 
-    return new GeneratedScene(raw.Text, choices, raw.UpdatedSummary, raw.KeyFacts);
+    var imagePrompt = raw.ImagePrompt;
+    if (string.IsNullOrWhiteSpace(imagePrompt))
+    {
+      _logger.LogWarning("Le LLM n'a pas fourni de champ 'imagePrompt' ; utilisation d'une description générique de repli.");
+      imagePrompt = "Illustration générique d'une scène d'aventure, sans personnage ni marque identifiable.";
+    }
+
+    return new GeneratedScene(raw.Text, choices, raw.UpdatedSummary, raw.KeyFacts, imagePrompt);
   }
 }
 

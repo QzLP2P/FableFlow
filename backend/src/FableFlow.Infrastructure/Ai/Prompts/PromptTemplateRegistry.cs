@@ -8,7 +8,7 @@ namespace FableFlow.Infrastructure.Ai.Prompts;
 public static class PromptTemplateRegistry
 {
   /// <summary>Version courante du gabarit de génération de scène.</summary>
-  public const string SceneTemplateVersion = "scene-generation@v1";
+  public const string SceneTemplateVersion = "scene-generation@v2";
 
   /// <summary>
   /// Instructions système : rôle, contrat de sortie JSON, garde-fous de contenu génériques.
@@ -26,7 +26,8 @@ public static class PromptTemplateRegistry
             "text": "texte de la scène",
             "choices": [ { "id": "a", "label": "...", "outcome": "Good|Bad|Neutral" } ],
             "updatedSummary": "résumé cumulatif mis à jour de toute l'histoire",
-            "keyFacts": ["fait clé 1", "fait clé 2"]
+            "keyFacts": ["fait clé 1", "fait clé 2"],
+            "imagePrompt": "description visuelle générique de la scène"
           }
         - Fournis entre 2 et 3 choix maximum, jamais ambigus, clairement distincts dans leurs conséquences.
         - Pour une scène de fin (ending), le tableau "choices" doit être vide.
@@ -35,7 +36,19 @@ public static class PromptTemplateRegistry
           aucune image n'est générée par toi).
         - Garde un ton cohérent avec le thème donné.
         - Prépare une issue cohérente si la session est proche de sa fin (victoire ou défaite).
+
+        Règle spécifique au champ "imagePrompt" (IMPORTANT) :
+        - Le champ "text" peut nommer librement les personnages, créatures ou univers du thème
+          (ex. noms propres de franchises), car c'est un contenu narratif destiné à la lecture.
+        - Le champ "imagePrompt" sert en revanche à générer une illustration via un service tiers qui
+          bloque tout nom propre ou marque déposée. Il doit donc décrire la MÊME scène de façon
+          purement visuelle et générique, SANS AUCUN nom propre, marque, titre de franchise ou nom de
+          personnage : décris plutôt l'apparence physique, les couleurs, la posture, l'environnement.
+          Exemple : au lieu de « Pikachu », écris « une petite créature jaune aux pouvoirs électriques,
+          avec de longues oreilles et des joues rouges ». Au lieu de « Spider-Man », écris « un héros
+          masqué en combinaison rouge et bleue qui lance des fils depuis ses mains ».
         """;
+
 
   /// <summary>Gabarit du prompt utilisateur, avec jetons de substitution.</summary>
   public const string SceneUserTemplate = """

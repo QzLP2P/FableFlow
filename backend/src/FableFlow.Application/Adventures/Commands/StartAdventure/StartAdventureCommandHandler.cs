@@ -48,7 +48,7 @@ public sealed class StartAdventureCommandHandler
     session.AttachScene(scene);
     session.UpdateSummary(generated.UpdatedSummary);
 
-    await TryAttachImageAsync(session, generationRequest, generated.Text, cancellationToken);
+    await TryAttachImageAsync(session, generationRequest, generated.ImagePrompt, cancellationToken);
 
     await _repository.SaveAsync(session, cancellationToken);
 
@@ -58,7 +58,7 @@ public sealed class StartAdventureCommandHandler
   private async Task TryAttachImageAsync(
       AdventureSession session,
       SceneGenerationRequest generationRequest,
-      string sceneText,
+      string genericSceneDescription,
       CancellationToken cancellationToken)
   {
     if (!_imageGeneration.IsEnabled)
@@ -66,7 +66,7 @@ public sealed class StartAdventureCommandHandler
       return;
     }
 
-    var imagePrompt = _promptBuilder.BuildImagePrompt(generationRequest, sceneText);
+    var imagePrompt = _promptBuilder.BuildImagePrompt(generationRequest, genericSceneDescription);
     var imageUrl = await _imageGeneration.GenerateImageAsync(imagePrompt, cancellationToken);
     if (imageUrl is not null)
     {

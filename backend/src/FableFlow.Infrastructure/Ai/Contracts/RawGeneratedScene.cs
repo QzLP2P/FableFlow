@@ -22,4 +22,7 @@ public sealed class RawGeneratedScene
   public string UpdatedSummary { get; set; } = string.Empty;
 
   public List<string> KeyFacts { get; set; } = [];
+
+  /// <summary>Description visuelle générique de la scène, sans nom propre ni marque déposée.</summary>
+  public string ImagePrompt { get; set; } = string.Empty;
 }

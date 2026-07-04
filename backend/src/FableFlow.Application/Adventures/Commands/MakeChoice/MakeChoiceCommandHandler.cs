@@ -76,7 +76,7 @@ public sealed class MakeChoiceCommandHandler
 
     if (_imageGeneration.IsEnabled)
     {
-      var imagePrompt = _promptBuilder.BuildImagePrompt(generationRequest, generated.Text);
+      var imagePrompt = _promptBuilder.BuildImagePrompt(generationRequest, generated.ImagePrompt);
       var imageUrl = await _imageGeneration.GenerateImageAsync(imagePrompt, cancellationToken);
       if (imageUrl is not null)
       {

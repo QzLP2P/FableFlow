@@ -43,16 +43,15 @@ public sealed class PromptBuilder : IPromptBuilder
         request.Session.CurrentSceneNumber + 1);
   }
 
-  public StoryImagePrompt BuildImagePrompt(SceneGenerationRequest request, string sceneText)
+  public StoryImagePrompt BuildImagePrompt(SceneGenerationRequest request, string genericSceneDescription)
   {
-    // Volontairement sans le nom du thème (ex. "Pokémon", "Spidey") : ces noms sont des
-    // placeholders inspirés d'univers sous licence (voir README, section propriété intellectuelle).
-    // Les référencer explicitement dans un prompt d'image peut aussi déclencher les filtres de
-    // contenu (marques déposées) des fournisseurs d'IA générative. On ne transmet que la
-    // description narrative et le style visuel générique du thème.
+    // "genericSceneDescription" provient du champ "imagePrompt" généré par le LLM (voir
+    // PromptTemplateRegistry.SceneSystemPrompt) : une description purement visuelle de la scène,
+    // sans nom de thème, de personnage ni de marque déposée, afin de rester conforme aux filtres
+    // de contenu du fournisseur d'image (voir README, section propriété intellectuelle).
     var prompt =
         $"Illustration pour une histoire interactive. " +
-        $"Scène : {Truncate(sceneText, 500)} " +
+        $"Scène : {Truncate(genericSceneDescription, 500)} " +
         $"Contraintes : {string.Join(" ", request.Theme.SafetyConstraints)} " +
         "Aucun texte ni typographie dans l'image.";
 

@@ -56,7 +56,8 @@ public class StartAdventureCommandHandlerTests
             "Il était une fois...",
             [new GeneratedChoice("a", "Explorer", ChoiceOutcome.Neutral)],
             "Résumé initial",
-            []));
+            [],
+            "Description générique de la scène"));
 
     _imageGeneration.IsEnabled.Returns(false);
 
@@ -87,7 +88,8 @@ public class StartAdventureCommandHandlerTests
             "Scène illustrée",
             [new GeneratedChoice("a", "Explorer", ChoiceOutcome.Neutral)],
             "Résumé",
-            []));
+            [],
+            "Description générique de la scène"));
 
     _imageGeneration.IsEnabled.Returns(true);
     _imageGeneration.GenerateImageAsync(Arg.Any<StoryImagePrompt>(), Arg.Any<CancellationToken>())
