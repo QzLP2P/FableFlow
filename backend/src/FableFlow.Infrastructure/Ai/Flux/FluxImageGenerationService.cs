@@ -50,6 +50,38 @@ public sealed class FluxImageGenerationService : IImageGenerationService
 
   public async Task<string?> GenerateImageAsync(StoryImagePrompt prompt, CancellationToken cancellationToken)
   {
+    var scenePrompt = $"{prompt.Prompt} Style : {prompt.Style}.";
+    var (image, errorCode) = await TryGenerateAsync(scenePrompt, cancellationToken);
+    if (image is not null)
+    {
+      return image;
+    }
+
+    // Azure filtre parfois même les descriptions génériques d'un personnage très connu
+    // (le blocage RAI ne se limite pas aux noms propres). Dans ce cas précis, on retente
+    // une seule fois avec un prompt totalement générique (juste le style du thème, sans
+    // aucune description de scène) afin d'afficher au moins une illustration d'ambiance
+    // plutôt que rien du tout.
+    if (errorCode == "content_safety_violation")
+    {
+      var fallbackPrompt =
+          $"Illustration d'ambiance pour une histoire interactive destinée aux enfants, " +
+          $"sans aucun personnage identifiable, juste un décor accueillant. Style : {prompt.Style}. " +
+          "Aucun texte ni typographie dans l'image.";
+
+      _logger.LogInformation(
+          "Nouvelle tentative de génération d'image avec un prompt générique de repli après un blocage RAI.");
+
+      (image, _) = await TryGenerateAsync(fallbackPrompt, cancellationToken);
+    }
+
+    return image;
+  }
+
+  private async Task<(string? Image, string? ErrorCode)> TryGenerateAsync(
+      string promptText,
+      CancellationToken cancellationToken)
+  {
     try
     {
       await AuthenticateAsync(cancellationToken);
@@ -57,7 +89,7 @@ public sealed class FluxImageGenerationService : IImageGenerationService
       var request = new FluxGenerationRequest
       {
         Model = _options.DeploymentName,
-        Prompt = $"{prompt.Prompt} Style : {prompt.Style}."
+        Prompt = promptText
       };
 
       // Le proxy Azure Foundry pour FLUX.2-pro exige un en-tête Content-Length explicite
@@ -85,7 +117,7 @@ public sealed class FluxImageGenerationService : IImageGenerationService
             "Échec de la génération d'image FLUX ({StatusCode}), la scène sera affichée sans illustration. Réponse : {ErrorBody}",
             (int)response.StatusCode,
             errorBody);
-        return null;
+        return (null, ExtractErrorCode(errorBody));
       }
 
       var generation = await response.Content.ReadFromJsonAsync<FluxGenerationResponse>(cancellationToken);
@@ -93,16 +125,32 @@ public sealed class FluxImageGenerationService : IImageGenerationService
 
       if (image?.Base64Json is { } base64)
       {
-        return $"data:image/jpeg;base64,{base64}";
+        return ($"data:image/jpeg;base64,{base64}", null);
       }
 
-      return image?.Url;
+      return (image?.Url, null);
     }
     catch (Exception ex)
     {
       // La génération d'image est une amélioration non bloquante : on journalise et on
       // renvoie null plutôt que de faire échouer toute la scène narrative.
       _logger.LogWarning(ex, "Échec de la génération d'image FLUX, la scène sera affichée sans illustration.");
+      return (null, null);
+    }
+  }
+
+  private static string? ExtractErrorCode(string errorBody)
+  {
+    try
+    {
+      using var document = JsonDocument.Parse(errorBody);
+      return document.RootElement.TryGetProperty("error", out var error) &&
+             error.TryGetProperty("code", out var code)
+          ? code.GetString()
+          : null;
+    }
+    catch (JsonException)
+    {
       return null;
     }
   }
