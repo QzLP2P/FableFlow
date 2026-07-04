@@ -9,8 +9,8 @@ namespace FableFlow.Infrastructure.Ai;
 /// </summary>
 public sealed class NullImageGenerationService : IImageGenerationService
 {
-    public bool IsEnabled => false;
+  public bool IsEnabled => false;
 
-    public Task<string?> GenerateImageAsync(StoryImagePrompt prompt, CancellationToken cancellationToken) =>
-        Task.FromResult<string?>(null);
+  public Task<string?> GenerateImageAsync(StoryImagePrompt prompt, CancellationToken cancellationToken) =>
+      Task.FromResult<string?>(null);
 }

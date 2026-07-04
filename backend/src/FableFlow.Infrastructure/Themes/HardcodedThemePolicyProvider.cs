@@ -10,9 +10,9 @@ namespace FableFlow.Infrastructure.Themes;
 /// </summary>
 public sealed class HardcodedThemePolicyProvider : IThemePolicyProvider
 {
-    private static readonly IReadOnlyList<ThemeDefinition> Themes =
-    [
-        new ThemeDefinition(
+  private static readonly IReadOnlyList<ThemeDefinition> Themes =
+  [
+      new ThemeDefinition(
             id: "pokemon",
             displayName: "Pokémon — Aventure de dresseur",
             audience: AudienceTarget.Child,
@@ -43,14 +43,14 @@ public sealed class HardcodedThemePolicyProvider : IThemePolicyProvider
                 "Ton héroïque, rassurant, orienté entraide et courage."
             ],
             imageStyle: "illustration style bande dessinée lumineuse, dynamique, adaptée aux enfants")
-    ];
+  ];
 
-    public Task<IReadOnlyList<ThemeDefinition>> GetThemesAsync(CancellationToken cancellationToken) =>
-        Task.FromResult(Themes);
+  public Task<IReadOnlyList<ThemeDefinition>> GetThemesAsync(CancellationToken cancellationToken) =>
+      Task.FromResult(Themes);
 
-    public Task<ThemeDefinition?> FindThemeAsync(string themeId, CancellationToken cancellationToken)
-    {
-        var theme = Themes.FirstOrDefault(t => string.Equals(t.Id, themeId, StringComparison.OrdinalIgnoreCase));
-        return Task.FromResult(theme);
-    }
+  public Task<ThemeDefinition?> FindThemeAsync(string themeId, CancellationToken cancellationToken)
+  {
+    var theme = Themes.FirstOrDefault(t => string.Equals(t.Id, themeId, StringComparison.OrdinalIgnoreCase));
+    return Task.FromResult(theme);
+  }
 }

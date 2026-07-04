@@ -89,7 +89,10 @@ resource openAiUserAssignment 'Microsoft.Authorization/roleAssignments@2022-04-0
   name: guid(account.id, identityPrincipalId, cognitiveServicesOpenAiUserRoleId)
   scope: account
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', cognitiveServicesOpenAiUserRoleId)
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      cognitiveServicesOpenAiUserRoleId
+    )
     principalId: identityPrincipalId
     principalType: 'ServicePrincipal'
   }

@@ -10,18 +10,18 @@ namespace FableFlow.Infrastructure.Persistence;
 /// </summary>
 public sealed class InMemoryAdventureRepository : IAdventureRepository
 {
-    private readonly ConcurrentDictionary<Guid, AdventureSession> _sessions = new();
+  private readonly ConcurrentDictionary<Guid, AdventureSession> _sessions = new();
 
-    public Task<AdventureSession?> GetAsync(Guid id, CancellationToken cancellationToken)
-    {
-        _sessions.TryGetValue(id, out var session);
-        return Task.FromResult(session);
-    }
+  public Task<AdventureSession?> GetAsync(Guid id, CancellationToken cancellationToken)
+  {
+    _sessions.TryGetValue(id, out var session);
+    return Task.FromResult(session);
+  }
 
-    public Task SaveAsync(AdventureSession session, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(session);
-        _sessions[session.Id] = session;
-        return Task.CompletedTask;
-    }
+  public Task SaveAsync(AdventureSession session, CancellationToken cancellationToken)
+  {
+    ArgumentNullException.ThrowIfNull(session);
+    _sessions[session.Id] = session;
+    return Task.CompletedTask;
+  }
 }

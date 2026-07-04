@@ -11,27 +11,27 @@ namespace FableFlow.Api.Tests.Fakes;
 /// </summary>
 public sealed class FakeStoryGenerationService : IStoryGenerationService
 {
-    public Task<GeneratedScene> GenerateSceneAsync(StoryPrompt prompt, CancellationToken cancellationToken)
+  public Task<GeneratedScene> GenerateSceneAsync(StoryPrompt prompt, CancellationToken cancellationToken)
+  {
+    if (prompt.Kind == SceneKind.Ending)
     {
-        if (prompt.Kind == SceneKind.Ending)
-        {
-            return Task.FromResult(new GeneratedScene(
-                $"Fin de l'aventure (après la scène {prompt.SceneNumber}).",
-                [],
-                "Résumé final de l'aventure.",
-                []));
-        }
-
-        GeneratedChoice[] choices =
-        [
-            new("a", "Faire le bon choix", ChoiceOutcome.Good),
-            new("b", "Faire le mauvais choix", ChoiceOutcome.Bad)
-        ];
-
-        return Task.FromResult(new GeneratedScene(
-            $"Texte généré pour la scène {prompt.SceneNumber}.",
-            choices,
-            $"Résumé jusqu'à la scène {prompt.SceneNumber}.",
-            []));
+      return Task.FromResult(new GeneratedScene(
+          $"Fin de l'aventure (après la scène {prompt.SceneNumber}).",
+          [],
+          "Résumé final de l'aventure.",
+          []));
     }
+
+    GeneratedChoice[] choices =
+    [
+        new("a", "Faire le bon choix", ChoiceOutcome.Good),
+            new("b", "Faire le mauvais choix", ChoiceOutcome.Bad)
+    ];
+
+    return Task.FromResult(new GeneratedScene(
+        $"Texte généré pour la scène {prompt.SceneNumber}.",
+        choices,
+        $"Résumé jusqu'à la scène {prompt.SceneNumber}.",
+        []));
+  }
 }

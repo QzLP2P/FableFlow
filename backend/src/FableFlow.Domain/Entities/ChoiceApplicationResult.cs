@@ -8,5 +8,5 @@ public sealed record ChoiceApplicationResult(
     ChoiceOutcome ChoiceOutcome,
     bool RequiresNextScene)
 {
-    public bool IsTerminal => Status != SessionStatus.InProgress;
+  public bool IsTerminal => Status != SessionStatus.InProgress;
 }

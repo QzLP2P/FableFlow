@@ -7,14 +7,14 @@ namespace FableFlow.Infrastructure.Ai.Prompts;
 /// </summary>
 public static class PromptTemplateRegistry
 {
-    /// <summary>Version courante du gabarit de génération de scène.</summary>
-    public const string SceneTemplateVersion = "scene-generation@v1";
+  /// <summary>Version courante du gabarit de génération de scène.</summary>
+  public const string SceneTemplateVersion = "scene-generation@v1";
 
-    /// <summary>
-    /// Instructions système : rôle, contrat de sortie JSON, garde-fous de contenu génériques.
-    /// Les contraintes spécifiques au thème et au public sont injectées dans le prompt utilisateur.
-    /// </summary>
-    public const string SceneSystemPrompt = """
+  /// <summary>
+  /// Instructions système : rôle, contrat de sortie JSON, garde-fous de contenu génériques.
+  /// Les contraintes spécifiques au thème et au public sont injectées dans le prompt utilisateur.
+  /// </summary>
+  public const string SceneSystemPrompt = """
         Tu es le narrateur d'une aventure interactive pour l'application FableFlow.
         Tu écris une scène à la fois, en tenant compte de tout le contexte fourni, afin que
         l'histoire reste cohérente du début à la fin (pas de contradiction de ton, de personnages
@@ -37,8 +37,8 @@ public static class PromptTemplateRegistry
         - Prépare une issue cohérente si la session est proche de sa fin (victoire ou défaite).
         """;
 
-    /// <summary>Gabarit du prompt utilisateur, avec jetons de substitution.</summary>
-    public const string SceneUserTemplate = """
+  /// <summary>Gabarit du prompt utilisateur, avec jetons de substitution.</summary>
+  public const string SceneUserTemplate = """
         # Thème
         {{theme_name}} — {{narrative_universe}}
 

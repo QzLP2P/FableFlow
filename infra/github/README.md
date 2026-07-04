@@ -81,6 +81,8 @@ az role assignment create --assignee-object-id $principalId --assignee-principal
 | Rôles attribués | `Contributor` + `User Access Administrator` sur `rg-fableflow` |
 | Environnement GitHub | `production` créé sur le repo |
 
+> ⚠️ La branche par défaut de ce repo est **`master`**, pas `main`. Les federated credentials et les déclencheurs `push` des workflows ciblent `master`. Si vous renommez la branche par défaut, mettez à jour les deux en même temps.
+
 ## 2. Secrets et variables GitHub à configurer
 
 Dans **Settings → Secrets and variables → Actions** du repository (déjà fait pour QzLP2P/FableFlow via `gh secret set`/`gh variable set`) :
@@ -92,7 +94,7 @@ Dans **Settings → Secrets and variables → Actions** du repository (déjà fa
 | `AZURE_CLIENT_ID` | `clientId` de l'identité managée `id-fableflow-github-deploy` | ✅ Configuré |
 | `AZURE_TENANT_ID` | `37f626ab-77a8-4087-9c44-ef395de90a98` | ✅ Configuré |
 | `AZURE_SUBSCRIPTION_ID` | `a605300a-0c9e-4b29-b63c-607436903b70` | ✅ Configuré |
-| `AZURE_STATIC_WEB_APPS_API_TOKEN` | Jeton de déploiement de la Static Web App (récupéré **après** le premier déploiement infra, voir étape 3) | ⏳ À faire après `deploy-infra` |
+| `AZURE_STATIC_WEB_APPS_API_TOKEN` | Jeton de déploiement de la Static Web App | ✅ Configuré |
 
 ### Variables (`Variables` tab, non sensibles)
 
@@ -100,7 +102,7 @@ Dans **Settings → Secrets and variables → Actions** du repository (déjà fa
 | --- | --- | --- |
 | `AZURE_RESOURCE_GROUP` | `rg-fableflow` | ✅ Configuré |
 | `AZURE_LOCATION` | `westeurope` | ✅ Configuré |
-| `API_BASE_URL` | URL de l'API déployée (ex. `https://app-fableflow-xxxx.azurewebsites.net`), à renseigner **après** le premier déploiement infra (sortie `apiUrl`) | ⏳ À faire après `deploy-infra` |
+| `API_BASE_URL` | `https://app-fableflow-q6hxb5lxsgsdo.azurewebsites.net` | ✅ Configuré |
 
 ## 3. Récupérer le jeton de déploiement de la Static Web App
 
@@ -118,6 +120,16 @@ Copier la valeur dans le secret GitHub `AZURE_STATIC_WEB_APPS_API_TOKEN` (`gh se
 1. `deploy-infra` (crée Key Vault, Azure AI Foundry, App Service, Static Web App, identité managée applicative).
 2. Récupérer les sorties (`apiUrl`, `staticWebAppName`) et renseigner `API_BASE_URL` + `AZURE_STATIC_WEB_APPS_API_TOKEN`.
 3. `deploy-backend` et `deploy-frontend` (peuvent ensuite tourner indépendamment à chaque push).
+
+## Déploiement effectué (2026-07-04)
+
+| Composant | URL |
+| --- | --- |
+| API | https://app-fableflow-q6hxb5lxsgsdo.azurewebsites.net |
+| Frontend | https://lemon-ground-09d7f7803.7.azurestaticapps.net |
+| Key Vault | https://kv-q6hxb5lxsgsdo.vault.azure.net/ |
+
+Vérifié en production : `/api/themes`, `/health` OK côté API ; le frontend charge bien les thèmes depuis l'API (CORS opérationnel).
 
 ## Notes de sécurité
 

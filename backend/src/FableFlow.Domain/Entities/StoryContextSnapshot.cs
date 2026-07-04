@@ -6,17 +6,17 @@ namespace FableFlow.Domain.Entities;
 /// </summary>
 public sealed class StoryContextSnapshot
 {
-    public StoryContextSnapshot(string runningSummary, IReadOnlyList<string> keyFacts)
-    {
-        RunningSummary = runningSummary;
-        KeyFacts = keyFacts;
-    }
+  public StoryContextSnapshot(string runningSummary, IReadOnlyList<string> keyFacts)
+  {
+    RunningSummary = runningSummary;
+    KeyFacts = keyFacts;
+  }
 
-    /// <summary>Résumé cumulatif de l'histoire jusqu'à la scène courante.</summary>
-    public string RunningSummary { get; }
+  /// <summary>Résumé cumulatif de l'histoire jusqu'à la scène courante.</summary>
+  public string RunningSummary { get; }
 
-    /// <summary>Faits marquants à préserver (personnages, objets, enjeux).</summary>
-    public IReadOnlyList<string> KeyFacts { get; }
+  /// <summary>Faits marquants à préserver (personnages, objets, enjeux).</summary>
+  public IReadOnlyList<string> KeyFacts { get; }
 
-    public static StoryContextSnapshot Empty { get; } = new(string.Empty, []);
+  public static StoryContextSnapshot Empty { get; } = new(string.Empty, []);
 }

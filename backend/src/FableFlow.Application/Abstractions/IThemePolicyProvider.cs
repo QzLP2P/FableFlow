@@ -8,7 +8,7 @@ namespace FableFlow.Application.Abstractions;
 /// </summary>
 public interface IThemePolicyProvider
 {
-    Task<IReadOnlyList<ThemeDefinition>> GetThemesAsync(CancellationToken cancellationToken);
+  Task<IReadOnlyList<ThemeDefinition>> GetThemesAsync(CancellationToken cancellationToken);
 
-    Task<ThemeDefinition?> FindThemeAsync(string themeId, CancellationToken cancellationToken);
+  Task<ThemeDefinition?> FindThemeAsync(string themeId, CancellationToken cancellationToken);
 }

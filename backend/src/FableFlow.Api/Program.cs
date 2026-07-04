@@ -22,7 +22,7 @@ builder.Host.UseSerilog((context, services, loggerConfiguration) => loggerConfig
 var keyVaultUri = builder.Configuration["KeyVault:Uri"];
 if (!builder.Environment.IsDevelopment() && !string.IsNullOrWhiteSpace(keyVaultUri))
 {
-    builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUri), new DefaultAzureCredential());
+  builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUri), new DefaultAzureCredential());
 }
 
 // ---------- Application / Infrastructure ----------
@@ -36,15 +36,15 @@ var corsOptions = builder.Configuration.GetSection(CorsOptions.SectionName).Get<
 const string FrontendCorsPolicy = "FrontendCorsPolicy";
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(FrontendCorsPolicy, policy =>
+  options.AddPolicy(FrontendCorsPolicy, policy =>
+  {
+    if (corsOptions.AllowedOrigins.Length > 0)
     {
-        if (corsOptions.AllowedOrigins.Length > 0)
-        {
-            policy.WithOrigins(corsOptions.AllowedOrigins)
-                .AllowAnyHeader()
-                .AllowAnyMethod();
-        }
-    });
+      policy.WithOrigins(corsOptions.AllowedOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    }
+  });
 });
 
 // ---------- Error handling (ProblemDetails) ----------
@@ -58,12 +58,12 @@ builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
-    {
-        Title = "FableFlow API",
-        Version = "v1",
-        Description = "API de génération d'aventures interactives par LLM."
-    });
+  options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+  {
+    Title = "FableFlow API",
+    Version = "v1",
+    Description = "API de génération d'aventures interactives par LLM."
+  });
 });
 
 // ---------- Observabilité (OpenTelemetry) ----------
@@ -78,7 +78,7 @@ var otel = builder.Services.AddOpenTelemetry()
 
 if (!string.IsNullOrWhiteSpace(appInsightsConnectionString))
 {
-    otel.UseAzureMonitor(options => options.ConnectionString = appInsightsConnectionString);
+  otel.UseAzureMonitor(options => options.ConnectionString = appInsightsConnectionString);
 }
 
 var app = builder.Build();
@@ -87,8 +87,8 @@ app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+  app.UseSwagger();
+  app.UseSwaggerUI();
 }
 
 app.UseCors(FrontendCorsPolicy);

@@ -18,84 +18,84 @@ namespace FableFlow.Infrastructure.Ai.Flux;
 /// </summary>
 public sealed class FluxImageGenerationService : IImageGenerationService
 {
-    private static readonly TokenRequestContext FoundryTokenContext = new(["https://ai.azure.com/.default"]);
+  private static readonly TokenRequestContext FoundryTokenContext = new(["https://ai.azure.com/.default"]);
 
-    private readonly HttpClient _httpClient;
-    private readonly FluxImageOptions _options;
-    private readonly DefaultAzureCredential? _credential;
-    private readonly ILogger<FluxImageGenerationService> _logger;
+  private readonly HttpClient _httpClient;
+  private readonly FluxImageOptions _options;
+  private readonly DefaultAzureCredential? _credential;
+  private readonly ILogger<FluxImageGenerationService> _logger;
 
-    public FluxImageGenerationService(
-        IHttpClientFactory httpClientFactory,
-        IOptions<FluxImageOptions> options,
-        ILogger<FluxImageGenerationService> logger)
+  public FluxImageGenerationService(
+      IHttpClientFactory httpClientFactory,
+      IOptions<FluxImageOptions> options,
+      ILogger<FluxImageGenerationService> logger)
+  {
+    _httpClient = httpClientFactory.CreateClient(nameof(FluxImageGenerationService));
+    _options = options.Value;
+    _credential = _options.UseManagedIdentity ? new DefaultAzureCredential() : null;
+    _logger = logger;
+
+    if (!string.IsNullOrWhiteSpace(_options.Endpoint))
     {
-        _httpClient = httpClientFactory.CreateClient(nameof(FluxImageGenerationService));
-        _options = options.Value;
-        _credential = _options.UseManagedIdentity ? new DefaultAzureCredential() : null;
-        _logger = logger;
-
-        if (!string.IsNullOrWhiteSpace(_options.Endpoint))
-        {
-            _httpClient.BaseAddress = new Uri(_options.Endpoint.TrimEnd('/') + "/");
-        }
-
-        _httpClient.Timeout = TimeSpan.FromSeconds(_options.TimeoutSeconds);
+      _httpClient.BaseAddress = new Uri(_options.Endpoint.TrimEnd('/') + "/");
     }
 
-    public bool IsEnabled => true;
+    _httpClient.Timeout = TimeSpan.FromSeconds(_options.TimeoutSeconds);
+  }
 
-    public async Task<string?> GenerateImageAsync(StoryImagePrompt prompt, CancellationToken cancellationToken)
+  public bool IsEnabled => true;
+
+  public async Task<string?> GenerateImageAsync(StoryImagePrompt prompt, CancellationToken cancellationToken)
+  {
+    try
     {
-        try
-        {
-            await AuthenticateAsync(cancellationToken);
+      await AuthenticateAsync(cancellationToken);
 
-            var request = new FluxGenerationRequest
-            {
-                Model = _options.DeploymentName,
-                Prompt = $"{prompt.Prompt} Style : {prompt.Style}."
-            };
+      var request = new FluxGenerationRequest
+      {
+        Model = _options.DeploymentName,
+        Prompt = $"{prompt.Prompt} Style : {prompt.Style}."
+      };
 
-            var response = await _httpClient.PostAsJsonAsync(
-                $"providers/blackforestlabs/v1/{_options.ModelSlug}",
-                request,
-                cancellationToken);
-            response.EnsureSuccessStatusCode();
+      var response = await _httpClient.PostAsJsonAsync(
+          $"providers/blackforestlabs/v1/{_options.ModelSlug}",
+          request,
+          cancellationToken);
+      response.EnsureSuccessStatusCode();
 
-            var generation = await response.Content.ReadFromJsonAsync<FluxGenerationResponse>(cancellationToken);
-            var image = generation?.Data.FirstOrDefault();
+      var generation = await response.Content.ReadFromJsonAsync<FluxGenerationResponse>(cancellationToken);
+      var image = generation?.Data.FirstOrDefault();
 
-            if (image?.Base64Json is { } base64)
-            {
-                return $"data:image/jpeg;base64,{base64}";
-            }
+      if (image?.Base64Json is { } base64)
+      {
+        return $"data:image/jpeg;base64,{base64}";
+      }
 
-            return image?.Url;
-        }
-        catch (Exception ex)
-        {
-            // La génération d'image est une amélioration non bloquante : on journalise et on
-            // renvoie null plutôt que de faire échouer toute la scène narrative.
-            _logger.LogWarning(ex, "Échec de la génération d'image FLUX, la scène sera affichée sans illustration.");
-            return null;
-        }
+      return image?.Url;
+    }
+    catch (Exception ex)
+    {
+      // La génération d'image est une amélioration non bloquante : on journalise et on
+      // renvoie null plutôt que de faire échouer toute la scène narrative.
+      _logger.LogWarning(ex, "Échec de la génération d'image FLUX, la scène sera affichée sans illustration.");
+      return null;
+    }
+  }
+
+  private async Task AuthenticateAsync(CancellationToken cancellationToken)
+  {
+    if (_credential is not null)
+    {
+      var token = await _credential.GetTokenAsync(FoundryTokenContext, cancellationToken);
+      _httpClient.DefaultRequestHeaders.Authorization =
+          new AuthenticationHeaderValue("Bearer", token.Token);
+      return;
     }
 
-    private async Task AuthenticateAsync(CancellationToken cancellationToken)
+    if (!string.IsNullOrWhiteSpace(_options.ApiKey))
     {
-        if (_credential is not null)
-        {
-            var token = await _credential.GetTokenAsync(FoundryTokenContext, cancellationToken);
-            _httpClient.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue("Bearer", token.Token);
-            return;
-        }
-
-        if (!string.IsNullOrWhiteSpace(_options.ApiKey))
-        {
-            _httpClient.DefaultRequestHeaders.Remove("api-key");
-            _httpClient.DefaultRequestHeaders.Add("api-key", _options.ApiKey);
-        }
+      _httpClient.DefaultRequestHeaders.Remove("api-key");
+      _httpClient.DefaultRequestHeaders.Add("api-key", _options.ApiKey);
     }
+  }
 }

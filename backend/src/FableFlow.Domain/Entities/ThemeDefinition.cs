@@ -8,40 +8,40 @@ namespace FableFlow.Domain.Entities;
 /// </summary>
 public sealed class ThemeDefinition
 {
-    public ThemeDefinition(
-        string id,
-        string displayName,
-        AudienceTarget audience,
-        VocabularyLevel vocabularyLevel,
-        string narrativeUniverse,
-        IReadOnlyList<string> safetyConstraints,
-        string imageStyle)
-    {
-        Id = id;
-        DisplayName = displayName;
-        Audience = audience;
-        VocabularyLevel = vocabularyLevel;
-        NarrativeUniverse = narrativeUniverse;
-        SafetyConstraints = safetyConstraints;
-        ImageStyle = imageStyle;
-    }
+  public ThemeDefinition(
+      string id,
+      string displayName,
+      AudienceTarget audience,
+      VocabularyLevel vocabularyLevel,
+      string narrativeUniverse,
+      IReadOnlyList<string> safetyConstraints,
+      string imageStyle)
+  {
+    Id = id;
+    DisplayName = displayName;
+    Audience = audience;
+    VocabularyLevel = vocabularyLevel;
+    NarrativeUniverse = narrativeUniverse;
+    SafetyConstraints = safetyConstraints;
+    ImageStyle = imageStyle;
+  }
 
-    public string Id { get; }
+  public string Id { get; }
 
-    public string DisplayName { get; }
+  public string DisplayName { get; }
 
-    public AudienceTarget Audience { get; }
+  public AudienceTarget Audience { get; }
 
-    public VocabularyLevel VocabularyLevel { get; }
+  public VocabularyLevel VocabularyLevel { get; }
 
-    /// <summary>Description de l'univers narratif (cadre, ton, personnages types).</summary>
-    public string NarrativeUniverse { get; }
+  /// <summary>Description de l'univers narratif (cadre, ton, personnages types).</summary>
+  public string NarrativeUniverse { get; }
 
-    /// <summary>Contraintes de sécurité de contenu à injecter dans les prompts.</summary>
-    public IReadOnlyList<string> SafetyConstraints { get; }
+  /// <summary>Contraintes de sécurité de contenu à injecter dans les prompts.</summary>
+  public IReadOnlyList<string> SafetyConstraints { get; }
 
-    /// <summary>Style artistique à appliquer aux images générées.</summary>
-    public string ImageStyle { get; }
+  /// <summary>Style artistique à appliquer aux images générées.</summary>
+  public string ImageStyle { get; }
 
-    public bool IsForChildren => Audience == AudienceTarget.Child;
+  public bool IsForChildren => Audience == AudienceTarget.Child;
 }

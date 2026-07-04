@@ -4,15 +4,15 @@ Application web d'**histoires interactives générées par LLM**. L'utilisateur 
 
 ## Stack
 
-| Couche | Technologie |
-| --- | --- |
-| Frontend | React + TypeScript + MUI (Vite), **mobile-first** |
-| Backend | .NET 10 Web API, SOLID + CQRS (MediatR) |
-| LLM | Azure OpenAI (texte + image `gpt-image-1`), abstrait via ports |
-| Persistance | In-memory (MVP), abstraite via `IAdventureRepository` |
-| Secrets | Azure Key Vault + Managed Identity |
-| CI/CD | GitHub Actions (OIDC) |
-| Hébergement | Azure Static Web App (front) + App Service (API) |
+| Couche      | Technologie                                                    |
+| ----------- | -------------------------------------------------------------- |
+| Frontend    | React + TypeScript + MUI (Vite), **mobile-first**              |
+| Backend     | .NET 10 Web API, SOLID + CQRS (MediatR)                        |
+| LLM         | Azure OpenAI (texte + image `gpt-image-1`), abstrait via ports |
+| Persistance | In-memory (MVP), abstraite via `IAdventureRepository`          |
+| Secrets     | Azure Key Vault + Managed Identity                             |
+| CI/CD       | GitHub Actions (OIDC)                                          |
+| Hébergement | Azure Static Web App (front) + App Service (API)               |
 
 ## Structure du dépôt
 
@@ -50,14 +50,14 @@ Configurez `VITE_API_BASE_URL` dans `frontend/.env` (voir `.env.example`).
 
 ## Configuration
 
-Les secrets ne sont **jamais** commités. En local, utilisez les *user secrets* .NET ou des variables d'environnement. En Azure, ils sont résolus depuis Key Vault via `DefaultAzureCredential`.
+Les secrets ne sont **jamais** commités. En local, utilisez les _user secrets_ .NET ou des variables d'environnement. En Azure, ils sont résolus depuis Key Vault via `DefaultAzureCredential`.
 
-| Clé | Description |
-| --- | --- |
-| `AzureOpenAI:Endpoint` | Endpoint du compte Azure OpenAI |
-| `AzureOpenAI:ChatDeployment` | Déploiement du modèle orchestrateur (ex. `gpt-4o`) |
-| `AzureOpenAI:ImageDeployment` | Déploiement `gpt-image-1` |
-| `Features:ImageGeneration` | Active/désactive la génération d'images |
+| Clé                           | Description                                        |
+| ----------------------------- | -------------------------------------------------- |
+| `AzureOpenAI:Endpoint`        | Endpoint du compte Azure OpenAI                    |
+| `AzureOpenAI:ChatDeployment`  | Déploiement du modèle orchestrateur (ex. `gpt-4o`) |
+| `AzureOpenAI:ImageDeployment` | Déploiement `gpt-image-1`                          |
+| `Features:ImageGeneration`    | Active/désactive la génération d'images            |
 
 ## Documentation
 

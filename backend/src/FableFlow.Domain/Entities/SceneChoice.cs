@@ -6,29 +6,29 @@ namespace FableFlow.Domain.Entities;
 /// <summary>Un choix proposé à l'utilisateur au sein d'une scène.</summary>
 public sealed class SceneChoice
 {
-    public SceneChoice(string id, string label, ChoiceOutcome outcome)
+  public SceneChoice(string id, string label, ChoiceOutcome outcome)
+  {
+    if (string.IsNullOrWhiteSpace(id))
     {
-        if (string.IsNullOrWhiteSpace(id))
-        {
-            throw new DomainException("L'identifiant du choix est requis.");
-        }
-
-        if (string.IsNullOrWhiteSpace(label))
-        {
-            throw new DomainException("Le libellé du choix est requis.");
-        }
-
-        Id = id;
-        Label = label;
-        Outcome = outcome;
+      throw new DomainException("L'identifiant du choix est requis.");
     }
 
-    /// <summary>Identifiant court du choix (ex. "a", "b", "c").</summary>
-    public string Id { get; }
+    if (string.IsNullOrWhiteSpace(label))
+    {
+      throw new DomainException("Le libellé du choix est requis.");
+    }
 
-    /// <summary>Libellé affiché à l'utilisateur.</summary>
-    public string Label { get; }
+    Id = id;
+    Label = label;
+    Outcome = outcome;
+  }
 
-    /// <summary>Impact narratif du choix (neutre, bon, mauvais).</summary>
-    public ChoiceOutcome Outcome { get; }
+  /// <summary>Identifiant court du choix (ex. "a", "b", "c").</summary>
+  public string Id { get; }
+
+  /// <summary>Libellé affiché à l'utilisateur.</summary>
+  public string Label { get; }
+
+  /// <summary>Impact narratif du choix (neutre, bon, mauvais).</summary>
+  public ChoiceOutcome Outcome { get; }
 }

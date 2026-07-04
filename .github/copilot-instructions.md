@@ -17,6 +17,7 @@ Infrastructure  →  Application (implémente ses ports) + Domain
 - **Api** : composition root, endpoints HTTP, DI, config, observabilité. Dépend de `Application` et `Infrastructure`.
 
 ### Règles de dépendances (interdits)
+
 - ❌ `Domain` ne référence **jamais** `Application`, `Infrastructure` ou `Api`.
 - ❌ `Application` ne référence **jamais** `Infrastructure` ni `Api`.
 - ❌ Pas d'appel direct au SDK Azure OpenAI en dehors de `Infrastructure`.

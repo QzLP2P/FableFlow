@@ -13,12 +13,12 @@ namespace FableFlow.Api.Tests;
 /// </summary>
 public sealed class FableFlowWebApplicationFactory : WebApplicationFactory<Program>
 {
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
+  protected override void ConfigureWebHost(IWebHostBuilder builder)
+  {
+    builder.ConfigureServices(services =>
     {
-        builder.ConfigureServices(services =>
-        {
-            services.RemoveAll<IStoryGenerationService>();
-            services.AddSingleton<IStoryGenerationService, FakeStoryGenerationService>();
-        });
-    }
+      services.RemoveAll<IStoryGenerationService>();
+      services.AddSingleton<IStoryGenerationService, FakeStoryGenerationService>();
+    });
+  }
 }

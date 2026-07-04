@@ -18,12 +18,12 @@ flowchart LR
 
 ## Couches backend
 
-| Couche | Rôle | Dépendances |
-| --- | --- | --- |
-| `Domain` | Entités, enums, logique narrative pure | Aucune |
-| `Application` | CQRS (commands/queries + handlers), ports, DTOs, validation | `Domain` |
-| `Infrastructure` | Impl. des ports : Azure OpenAI, prompt builder, repository, theme policy | `Application`, `Domain` |
-| `Api` | Endpoints HTTP, DI, config, Key Vault, observabilité | `Application`, `Infrastructure` |
+| Couche           | Rôle                                                                     | Dépendances                     |
+| ---------------- | ------------------------------------------------------------------------ | ------------------------------- |
+| `Domain`         | Entités, enums, logique narrative pure                                   | Aucune                          |
+| `Application`    | CQRS (commands/queries + handlers), ports, DTOs, validation              | `Domain`                        |
+| `Infrastructure` | Impl. des ports : Azure OpenAI, prompt builder, repository, theme policy | `Application`, `Domain`         |
+| `Api`            | Endpoints HTTP, DI, config, Key Vault, observabilité                     | `Application`, `Infrastructure` |
 
 ## Flux « faire un choix »
 
@@ -58,13 +58,13 @@ sequenceDiagram
 
 ## Endpoints
 
-| Méthode | Route | Usage |
-| --- | --- | --- |
-| GET | `/api/themes` | Thèmes disponibles |
-| POST | `/api/adventures` | Démarre une aventure |
-| GET | `/api/adventures/{id}` | État courant |
-| POST | `/api/adventures/{id}/choices` | Applique un choix, génère la scène suivante |
-| GET | `/api/adventures/{id}/history` | Scènes déjà jouées |
+| Méthode | Route                          | Usage                                       |
+| ------- | ------------------------------ | ------------------------------------------- |
+| GET     | `/api/themes`                  | Thèmes disponibles                          |
+| POST    | `/api/adventures`              | Démarre une aventure                        |
+| GET     | `/api/adventures/{id}`         | État courant                                |
+| POST    | `/api/adventures/{id}/choices` | Applique un choix, génère la scène suivante |
+| GET     | `/api/adventures/{id}/history` | Scènes déjà jouées                          |
 
 ## Évolutions prévues
 
