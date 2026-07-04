@@ -1,5 +1,8 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
 using Azure.Core;
 using Azure.Identity;
 using FableFlow.Application.Abstractions;
@@ -57,11 +60,33 @@ public sealed class FluxImageGenerationService : IImageGenerationService
         Prompt = $"{prompt.Prompt} Style : {prompt.Style}."
       };
 
-      var response = await _httpClient.PostAsJsonAsync(
-          $"providers/blackforestlabs/v1/{_options.ModelSlug}",
-          request,
-          cancellationToken);
-      response.EnsureSuccessStatusCode();
+      // Le proxy Azure Foundry pour FLUX.2-pro exige un en-tête Content-Length explicite
+      // (erreur "no_content_length_header" sinon). JsonContent/ObjectContent sérialise en
+      // flux et ne précalcule pas sa longueur : HttpClient bascule alors sur
+      // Transfer-Encoding: chunked, que ce proxy rejette. StringContent, elle, encapsule un
+      // tableau d'octets de taille connue à l'avance, ce qui force l'envoi d'un en-tête
+      // Content-Length classique. On force aussi HTTP/1.1 par sécurité.
+      var json = JsonSerializer.Serialize(request);
+      using var httpRequest = new HttpRequestMessage(
+          HttpMethod.Post,
+          $"providers/blackforestlabs/v1/{_options.ModelSlug}")
+      {
+        Content = new StringContent(json, Encoding.UTF8, "application/json"),
+        Version = HttpVersion.Version11,
+        VersionPolicy = HttpVersionPolicy.RequestVersionExact
+      };
+
+      var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
+
+      if (!response.IsSuccessStatusCode)
+      {
+        var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+        _logger.LogWarning(
+            "Échec de la génération d'image FLUX ({StatusCode}), la scène sera affichée sans illustration. Réponse : {ErrorBody}",
+            (int)response.StatusCode,
+            errorBody);
+        return null;
+      }
 
       var generation = await response.Content.ReadFromJsonAsync<FluxGenerationResponse>(cancellationToken);
       var image = generation?.Data.FirstOrDefault();
