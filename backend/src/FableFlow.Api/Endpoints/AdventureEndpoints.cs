@@ -48,7 +48,7 @@ public static class AdventureEndpoints
       ISender sender,
       CancellationToken cancellationToken)
   {
-    var command = new StartAdventureCommand(request.ThemeId, request.SceneCount);
+    var command = new StartAdventureCommand(request.ThemeId, request.SceneCount, request.NarrativePremise);
     var result = await sender.Send(command, cancellationToken);
     return Results.CreatedAtRoute("GetAdventure", new { id = result.AdventureId }, result);
   }

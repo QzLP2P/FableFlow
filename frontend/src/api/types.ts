@@ -7,6 +7,11 @@ export interface ThemeDto {
   vocabularyLevel: string;
 }
 
+export interface StoryPremiseDto {
+  title: string;
+  hook: string;
+}
+
 export interface ChoiceDto {
   id: string;
   label: string;
@@ -39,6 +44,7 @@ export interface AdventureHistoryDto {
 export interface StartAdventureRequest {
   themeId: string;
   sceneCount: number;
+  narrativePremise?: string;
 }
 
 export interface MakeChoiceRequest {

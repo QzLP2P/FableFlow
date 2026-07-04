@@ -70,6 +70,9 @@ public static class PromptTemplateRegistry
         # Mémoire narrative (résumé cumulatif des scènes précédentes)
         {{running_summary}}
 
+        # Axe narratif principal choisi par l'utilisateur au démarrage
+        {{narrative_premise}}
+
         # Choix effectué par l'utilisateur
         {{selected_choice}}
 
@@ -78,5 +81,43 @@ public static class PromptTemplateRegistry
 
         # Structure attendue de la scène suivante
         {{expected_structure}}
+        """;
+
+  /// <summary>Version courante du gabarit de génération de propositions d'axe narratif.</summary>
+  public const string PremiseTemplateVersion = "story-premises@v1";
+
+  /// <summary>Instructions système pour la génération de plusieurs propositions d'axe narratif.</summary>
+  public const string PremiseSystemPrompt = """
+        Tu proposes des idées de point de départ pour une aventure interactive de l'application
+        FableFlow. Chaque proposition est un axe narratif court : un titre accrocheur et une
+        accroche de 1 à 2 phrases qui donne envie de jouer, sans dévoiler toute l'histoire.
+
+        Règles impératives :
+        - Réponds UNIQUEMENT avec un objet JSON valide, sans texte hors JSON, au format :
+          {
+            "premises": [ { "title": "...", "hook": "..." } ]
+          }
+        - Fournis exactement le nombre de propositions demandé.
+        - Chaque proposition doit être clairement différente des autres (enjeu, lieu ou objectif différent).
+        - Respecte strictement le niveau de vocabulaire et le public cible indiqués.
+        - Respecte strictement les contraintes de sécurité de contenu indiquées.
+        - Tu peux nommer librement les personnages, créatures ou univers du thème (contenu narratif
+          destiné à la lecture, aucune image n'est générée à partir de ce texte).
+        """;
+
+  /// <summary>Gabarit du prompt utilisateur pour la génération de propositions d'axe narratif.</summary>
+  public const string PremiseUserTemplate = """
+        # Thème
+        {{theme_name}} — {{narrative_universe}}
+
+        # Public cible et vocabulaire
+        Public : {{audience}}
+        Niveau de vocabulaire : {{vocabulary_level}}
+
+        # Contraintes de sécurité de contenu
+        {{safety_constraints}}
+
+        # Nombre de propositions attendues
+        {{count}}
         """;
 }

@@ -38,7 +38,11 @@ public sealed class StartAdventureCommandHandler
     var theme = await _themeProvider.FindThemeAsync(request.ThemeId, cancellationToken)
         ?? throw new NotFoundException("Thème", request.ThemeId);
 
-    var session = AdventureSession.Start(Guid.NewGuid(), theme.Id, request.SceneCount);
+    var session = AdventureSession.Start(
+        Guid.NewGuid(),
+        theme.Id,
+        request.SceneCount,
+        narrativePremise: request.NarrativePremise);
 
     var generationRequest = new SceneGenerationRequest(theme, session, SceneKind.Initial, SelectedChoice: null);
     var prompt = _promptBuilder.BuildScenePrompt(generationRequest);

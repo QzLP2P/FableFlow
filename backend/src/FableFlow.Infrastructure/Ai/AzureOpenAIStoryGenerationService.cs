@@ -65,6 +65,61 @@ public sealed class AzureOpenAIStoryGenerationService : IStoryGenerationService
     return ParseScene(rawJson);
   }
 
+  public async Task<IReadOnlyList<GeneratedPremise>> GeneratePremisesAsync(
+      StoryPremisePrompt prompt,
+      CancellationToken cancellationToken)
+  {
+    var messages = new ChatMessage[]
+    {
+            new SystemChatMessage(prompt.SystemPrompt),
+            new UserChatMessage(prompt.UserPrompt)
+    };
+
+    var chatOptions = new ChatCompletionOptions
+    {
+      ResponseFormat = ChatResponseFormat.CreateJsonObjectFormat()
+    };
+
+    ClientResult<ChatCompletion> completion;
+    try
+    {
+      completion = await _chatClient.CompleteChatAsync(messages, chatOptions, cancellationToken);
+    }
+    catch (Exception ex)
+    {
+      _logger.LogError(ex, "Échec de l'appel Azure OpenAI pour la génération de propositions d'axe narratif ({Version})",
+          prompt.TemplateVersion);
+      throw;
+    }
+
+    var rawJson = completion.Value.Content[0].Text;
+    return ParsePremises(rawJson);
+  }
+
+  private GeneratedPremise[] ParsePremises(string rawJson)
+  {
+    RawPremisesResponse? raw;
+    try
+    {
+      raw = JsonSerializer.Deserialize<RawPremisesResponse>(rawJson, JsonOptions);
+    }
+    catch (JsonException ex)
+    {
+      _logger.LogError(ex, "Réponse LLM non conforme au format JSON attendu : {RawJson}", rawJson);
+      throw new InvalidOperationException("La réponse du LLM n'est pas un JSON valide.", ex);
+    }
+
+    if (raw is null || raw.Premises.Count == 0)
+    {
+      throw new InvalidOperationException("La réponse du LLM ne contient aucune proposition d'axe narratif.");
+    }
+
+    return raw.Premises
+        .Where(p => !string.IsNullOrWhiteSpace(p.Title) && !string.IsNullOrWhiteSpace(p.Hook))
+        .Select(p => new GeneratedPremise(p.Title, p.Hook))
+        .ToArray();
+  }
+
   private GeneratedScene ParseScene(string rawJson)
   {
     RawGeneratedScene? raw;

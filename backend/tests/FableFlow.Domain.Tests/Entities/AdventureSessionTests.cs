@@ -17,6 +17,19 @@ public class AdventureSessionTests
     session.TargetSceneCount.Should().Be(5);
     session.BadChoiceCount.Should().Be(0);
     session.CurrentSceneNumber.Should().Be(0);
+    session.NarrativePremise.Should().BeNull();
+  }
+
+  [Fact]
+  public void Start_WithNarrativePremise_StoresIt()
+  {
+    var session = AdventureSession.Start(
+        Guid.NewGuid(),
+        "pokemon",
+        targetSceneCount: 5,
+        narrativePremise: "Un tournoi régional où un rival mystérieux sème le trouble.");
+
+    session.NarrativePremise.Should().Be("Un tournoi régional où un rival mystérieux sème le trouble.");
   }
 
   [Theory]

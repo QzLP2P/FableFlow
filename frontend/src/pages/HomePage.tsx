@@ -7,30 +7,52 @@ import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
 import { useThemes } from '../hooks/useThemes';
+import { useStoryPremises } from '../hooks/useStoryPremises';
 import { useStartAdventure } from '../hooks/useStartAdventure';
 import { ThemeCard } from '../components/ThemeCard';
+import { PremiseSelector } from '../components/PremiseSelector';
 import { SceneCountSelector } from '../components/SceneCountSelector';
 
 const MIN_SCENES = 3;
 const MAX_SCENES = 12;
 const DEFAULT_SCENES = 6;
 
-/** Page d'accueil : choix du thème et de la durée de l'aventure. */
+/** Page d'accueil : choix du thème, de l'axe narratif et de la durée de l'aventure. */
 export function HomePage() {
   const navigate = useNavigate();
   const { data: themes, isLoading, isError } = useThemes();
   const startAdventure = useStartAdventure();
 
   const [selectedThemeId, setSelectedThemeId] = useState<string | null>(null);
+  const [selectedPremiseIndex, setSelectedPremiseIndex] = useState<number | null>(null);
   const [sceneCount, setSceneCount] = useState(DEFAULT_SCENES);
 
+  const {
+    data: premises,
+    isLoading: isPremisesLoading,
+    isFetching: isPremisesFetching,
+    isError: isPremisesError,
+    refetch: refetchPremises,
+  } = useStoryPremises(selectedThemeId);
+
+  const selectedPremise = selectedPremiseIndex !== null ? premises?.[selectedPremiseIndex] : null;
+
+  const handleSelectTheme = (themeId: string) => {
+    setSelectedThemeId(themeId);
+    setSelectedPremiseIndex(null);
+  };
+
   const handleStart = () => {
-    if (!selectedThemeId) {
+    if (!selectedThemeId || !selectedPremise) {
       return;
     }
 
     startAdventure.mutate(
-      { themeId: selectedThemeId, sceneCount },
+      {
+        themeId: selectedThemeId,
+        sceneCount,
+        narrativePremise: `${selectedPremise.title} — ${selectedPremise.hook}`,
+      },
       {
         onSuccess: (adventure) => navigate(`/adventures/${adventure.adventureId}`),
       },
@@ -72,11 +94,26 @@ export function HomePage() {
                   key={theme.id}
                   theme={theme}
                   selected={theme.id === selectedThemeId}
-                  onSelect={setSelectedThemeId}
+                  onSelect={handleSelectTheme}
                 />
               ))}
             </Stack>
           </Stack>
+        )}
+
+        {selectedThemeId && (
+          <PremiseSelector
+            premises={premises}
+            isLoading={isPremisesLoading}
+            isFetching={isPremisesFetching}
+            isError={isPremisesError}
+            selectedIndex={selectedPremiseIndex}
+            onSelect={setSelectedPremiseIndex}
+            onRefresh={() => {
+              setSelectedPremiseIndex(null);
+              void refetchPremises();
+            }}
+          />
         )}
 
         <SceneCountSelector
@@ -96,7 +133,7 @@ export function HomePage() {
           variant="contained"
           size="large"
           fullWidth
-          disabled={!selectedThemeId || startAdventure.isPending}
+          disabled={!selectedThemeId || !selectedPremise || startAdventure.isPending}
           onClick={handleStart}
           sx={{ py: 1.5 }}
         >
@@ -106,3 +143,4 @@ export function HomePage() {
     </Container>
   );
 }
+

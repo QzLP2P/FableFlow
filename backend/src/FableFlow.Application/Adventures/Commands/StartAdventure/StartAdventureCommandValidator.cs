@@ -15,5 +15,9 @@ public sealed class StartAdventureCommandValidator : AbstractValidator<StartAdve
         .InclusiveBetween(AdventureSession.MinSceneCount, AdventureSession.MaxSceneCount)
         .WithMessage(
             $"Le nombre de scènes doit être compris entre {AdventureSession.MinSceneCount} et {AdventureSession.MaxSceneCount}.");
+
+    RuleFor(x => x.NarrativePremise)
+        .MaximumLength(1000)
+        .When(x => x.NarrativePremise is not null);
   }
 }

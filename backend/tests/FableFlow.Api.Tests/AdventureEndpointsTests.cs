@@ -29,6 +29,19 @@ public class AdventureEndpointsTests : IClassFixture<FableFlowWebApplicationFact
   }
 
   [Fact]
+  public async Task StartAdventure_WithNarrativePremise_ReturnsCreated()
+  {
+    var response = await _client.PostAsJsonAsync(
+        "/api/adventures",
+        new StartAdventureRequest("pokemon", 3, "Un tournoi régional où un rival mystérieux sème le trouble."));
+
+    response.StatusCode.Should().Be(HttpStatusCode.Created);
+
+    var adventure = await response.Content.ReadFromJsonAsync<AdventureDto>();
+    adventure!.Status.Should().Be("InProgress");
+  }
+
+  [Fact]
   public async Task StartAdventure_WithUnknownTheme_ReturnsNotFound()
   {
     var response = await _client.PostAsJsonAsync("/api/adventures", new StartAdventureRequest("does-not-exist", 3));

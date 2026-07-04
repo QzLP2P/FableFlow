@@ -36,4 +36,15 @@ public sealed class FakeStoryGenerationService : IStoryGenerationService
         [],
         "Description générique de la scène."));
   }
+
+  public Task<IReadOnlyList<GeneratedPremise>> GeneratePremisesAsync(
+      StoryPremisePrompt prompt,
+      CancellationToken cancellationToken)
+  {
+    var premises = Enumerable.Range(1, prompt.Count)
+        .Select(i => new GeneratedPremise($"Titre {i}", $"Accroche générée {i}."))
+        .ToArray();
+
+    return Task.FromResult<IReadOnlyList<GeneratedPremise>>(premises);
+  }
 }

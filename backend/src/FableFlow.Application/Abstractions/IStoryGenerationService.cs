@@ -7,4 +7,7 @@ public interface IStoryGenerationService
 {
   /// <summary>Génère une scène à partir d'un prompt structuré.</summary>
   Task<GeneratedScene> GenerateSceneAsync(StoryPrompt prompt, CancellationToken cancellationToken);
+
+  /// <summary>Génère plusieurs propositions d'axe narratif (premises) pour démarrer une aventure.</summary>
+  Task<IReadOnlyList<GeneratedPremise>> GeneratePremisesAsync(StoryPremisePrompt prompt, CancellationToken cancellationToken);
 }

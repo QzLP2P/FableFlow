@@ -1,4 +1,5 @@
 using FableFlow.Application.Abstractions.Generation;
+using FableFlow.Domain.Entities;
 
 namespace FableFlow.Application.Abstractions;
 
@@ -14,4 +15,7 @@ public interface IPromptBuilder
   /// propres ou de marques déposées pour rester conforme aux filtres de contenu des fournisseurs d'image.
   /// </summary>
   StoryImagePrompt BuildImagePrompt(SceneGenerationRequest request, string genericSceneDescription);
+
+  /// <summary>Construit le prompt de génération de plusieurs axes narratifs (premises) pour un thème.</summary>
+  StoryPremisePrompt BuildPremisePrompt(ThemeDefinition theme, int count);
 }

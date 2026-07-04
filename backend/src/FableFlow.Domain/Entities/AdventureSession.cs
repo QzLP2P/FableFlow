@@ -16,12 +16,13 @@ public sealed class AdventureSession
 
   private readonly List<AdventureScene> _scenes = [];
 
-  private AdventureSession(Guid id, string themeId, int targetSceneCount, int maxBadChoices)
+  private AdventureSession(Guid id, string themeId, int targetSceneCount, int maxBadChoices, string? narrativePremise)
   {
     Id = id;
     ThemeId = themeId;
     TargetSceneCount = targetSceneCount;
     MaxBadChoices = maxBadChoices;
+    NarrativePremise = narrativePremise;
     Status = SessionStatus.InProgress;
     RunningSummary = string.Empty;
     CurrentSceneNumber = 0;
@@ -34,6 +35,14 @@ public sealed class AdventureSession
   public int TargetSceneCount { get; }
 
   public int MaxBadChoices { get; }
+
+  /// <summary>
+  /// Axe narratif principal choisi par l'utilisateur parmi les propositions générées
+  /// (voir <c>GetStoryPremisesQuery</c>). Sert d'ancrage pour toutes les scènes générées
+  /// tout au long de l'aventure. <c>null</c> si l'utilisateur n'a pas choisi d'axe (le LLM
+  /// improvise librement dans ce cas).
+  /// </summary>
+  public string? NarrativePremise { get; }
 
   public int CurrentSceneNumber { get; private set; }
 
@@ -57,7 +66,8 @@ public sealed class AdventureSession
       Guid id,
       string themeId,
       int targetSceneCount,
-      int maxBadChoices = DefaultMaxBadChoices)
+      int maxBadChoices = DefaultMaxBadChoices,
+      string? narrativePremise = null)
   {
     if (string.IsNullOrWhiteSpace(themeId))
     {
@@ -75,7 +85,7 @@ public sealed class AdventureSession
       throw new DomainException("Le nombre maximum de mauvais choix doit être supérieur ou égal à 1.");
     }
 
-    return new AdventureSession(id, themeId, targetSceneCount, maxBadChoices);
+    return new AdventureSession(id, themeId, targetSceneCount, maxBadChoices, narrativePremise);
   }
 
   /// <summary>Rattache la scène nouvellement générée et fait progresser le compteur de scène.</summary>

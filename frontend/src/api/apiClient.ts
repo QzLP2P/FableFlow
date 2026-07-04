@@ -4,6 +4,7 @@ import type {
   AdventureHistoryDto,
   MakeChoiceRequest,
   StartAdventureRequest,
+  StoryPremiseDto,
   ThemeDto,
 } from './types';
 
@@ -18,6 +19,14 @@ export const apiClient = axios.create({
 
 export async function getThemes(): Promise<ThemeDto[]> {
   const { data } = await apiClient.get<ThemeDto[]>('/api/themes');
+  return data;
+}
+
+export async function getStoryPremises(themeId: string, count = 3): Promise<StoryPremiseDto[]> {
+  const { data } = await apiClient.get<StoryPremiseDto[]>(
+    `/api/themes/${themeId}/story-premises`,
+    { params: { count } },
+  );
   return data;
 }
 

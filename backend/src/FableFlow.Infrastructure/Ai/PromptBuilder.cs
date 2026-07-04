@@ -29,6 +29,9 @@ public sealed class PromptBuilder : IPromptBuilder
         .Replace("{{running_summary}}", string.IsNullOrWhiteSpace(request.Session.RunningSummary)
             ? "(Aucune scène précédente, il s'agit du tout début de l'aventure.)"
             : request.Session.RunningSummary)
+        .Replace("{{narrative_premise}}", string.IsNullOrWhiteSpace(request.Session.NarrativePremise)
+            ? "(Aucun axe imposé : improvise librement dans le cadre du thème.)"
+            : $"L'utilisateur a choisi cet axe de départ, respecte-le tout au long de l'aventure : « {request.Session.NarrativePremise} »")
         .Replace("{{selected_choice}}", request.SelectedChoice is null
             ? "(Aucun, il s'agit de la première scène.)"
             : $"L'utilisateur a choisi : « {request.SelectedChoice.Label} ».")
@@ -56,6 +59,23 @@ public sealed class PromptBuilder : IPromptBuilder
         "Aucun texte ni typographie dans l'image.";
 
     return new StoryImagePrompt(prompt, request.Theme.ImageStyle);
+  }
+
+  public StoryPremisePrompt BuildPremisePrompt(ThemeDefinition theme, int count)
+  {
+    var userPrompt = PromptTemplateRegistry.PremiseUserTemplate
+        .Replace("{{theme_name}}", theme.DisplayName)
+        .Replace("{{narrative_universe}}", theme.NarrativeUniverse)
+        .Replace("{{audience}}", theme.Audience.ToString())
+        .Replace("{{vocabulary_level}}", theme.VocabularyLevel.ToString())
+        .Replace("{{safety_constraints}}", FormatBulletList(theme.SafetyConstraints))
+        .Replace("{{count}}", count.ToString());
+
+    return new StoryPremisePrompt(
+        PromptTemplateRegistry.PremiseSystemPrompt,
+        userPrompt,
+        PromptTemplateRegistry.PremiseTemplateVersion,
+        count);
   }
 
   private static string BuildVictoryDefeatConditions(SceneGenerationRequest request)
