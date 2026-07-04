@@ -96,14 +96,22 @@ public sealed class MakeChoiceCommandHandler
     var generated = await _storyGeneration.GenerateSceneAsync(prompt, cancellationToken);
 
     session.UpdateSummary(generated.UpdatedSummary);
-    session.SetOutcome(BuildOutcome(session.Status, generated.Text));
+
+    string? imageUrl = null;
+    if (_imageGeneration.IsEnabled)
+    {
+      var imagePrompt = _promptBuilder.BuildImagePrompt(generationRequest, generated.ImagePrompt);
+      imageUrl = await _imageGeneration.GenerateImageAsync(imagePrompt, cancellationToken);
+    }
+
+    session.SetOutcome(BuildOutcome(session.Status, generated.Text, imageUrl));
   }
 
-  private static AdventureOutcome BuildOutcome(SessionStatus status, string message) => status switch
+  private static AdventureOutcome BuildOutcome(SessionStatus status, string message, string? imageUrl) => status switch
   {
-    SessionStatus.Won => AdventureOutcome.Won(message),
-    SessionStatus.Lost => AdventureOutcome.Lost(message),
-    SessionStatus.Completed => AdventureOutcome.Completed(message),
+    SessionStatus.Won => AdventureOutcome.Won(message, imageUrl),
+    SessionStatus.Lost => AdventureOutcome.Lost(message, imageUrl),
+    SessionStatus.Completed => AdventureOutcome.Completed(message, imageUrl),
     _ => throw new InvalidOperationException($"Statut terminal inattendu : {status}.")
   };
 }

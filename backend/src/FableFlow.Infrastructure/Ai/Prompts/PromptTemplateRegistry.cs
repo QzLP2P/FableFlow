@@ -8,7 +8,7 @@ namespace FableFlow.Infrastructure.Ai.Prompts;
 public static class PromptTemplateRegistry
 {
   /// <summary>Version courante du gabarit de génération de scène.</summary>
-  public const string SceneTemplateVersion = "scene-generation@v2";
+  public const string SceneTemplateVersion = "scene-generation@v3";
 
   /// <summary>
   /// Instructions système : rôle, contrat de sortie JSON, garde-fous de contenu génériques.
@@ -35,6 +35,11 @@ public static class PromptTemplateRegistry
         - Respecte strictement les contraintes de sécurité de contenu indiquées (texte uniquement,
           aucune image n'est générée par toi).
         - Garde un ton cohérent avec le thème donné.
+        - Sois créatif et inventif : varie les lieux, objets, personnages secondaires, rencontres et
+          rebondissements d'une scène et d'une aventure à l'autre. Évite les tournures, péripéties ou
+          formulations trop convenues, génériques ou déjà utilisées dans le résumé fourni. Surprends
+          agréablement le lecteur par des idées originales, tout en restant cohérent avec l'histoire,
+          l'univers narratif et les contraintes de sécurité.
         - Prépare une issue cohérente si la session est proche de sa fin (victoire ou défaite).
 
         Règle spécifique au champ "imagePrompt" (IMPORTANT) :
@@ -84,7 +89,7 @@ public static class PromptTemplateRegistry
         """;
 
   /// <summary>Version courante du gabarit de génération de propositions d'axe narratif.</summary>
-  public const string PremiseTemplateVersion = "story-premises@v1";
+  public const string PremiseTemplateVersion = "story-premises@v2";
 
   /// <summary>Instructions système pour la génération de plusieurs propositions d'axe narratif.</summary>
   public const string PremiseSystemPrompt = """
@@ -99,6 +104,9 @@ public static class PromptTemplateRegistry
           }
         - Fournis exactement le nombre de propositions demandé.
         - Chaque proposition doit être clairement différente des autres (enjeu, lieu ou objectif différent).
+        - Sois créatif et inventif : propose des idées originales et variées plutôt que les scénarios les
+          plus évidents ou attendus du thème. Explore des lieux, enjeux ou rencontres inhabituels tout en
+          restant cohérent avec l'univers narratif.
         - Respecte strictement le niveau de vocabulaire et le public cible indiqués.
         - Respecte strictement les contraintes de sécurité de contenu indiquées.
         - Tu peux nommer librement les personnages, créatures ou univers du thème (contenu narratif

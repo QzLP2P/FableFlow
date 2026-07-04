@@ -93,6 +93,33 @@ public class MakeChoiceCommandHandlerTests
     result.OutcomeMessage.Should().Be("Fin tragique");
   }
 
+  [Fact]
+  public async Task Handle_ReachingMaxBadChoices_WithImageGenerationEnabled_AttachesOutcomeImage()
+  {
+    var theme = CreateTheme();
+    var session = CreateSessionAtFirstScene(targetSceneCount: 10, maxBadChoices: 1);
+
+    _repository.GetAsync(session.Id, Arg.Any<CancellationToken>()).Returns(session);
+    _themeProvider.FindThemeAsync(theme.Id, Arg.Any<CancellationToken>()).Returns(theme);
+
+    _promptBuilder.BuildScenePrompt(Arg.Any<SceneGenerationRequest>())
+        .Returns(new StoryPrompt("system", "user", "v1", SceneKind.Ending, 1));
+
+    _storyGeneration.GenerateSceneAsync(Arg.Any<StoryPrompt>(), Arg.Any<CancellationToken>())
+        .Returns(new GeneratedScene("Fin tragique", [], "Résumé final", [], "Description générique de la scène finale"));
+
+    _imageGeneration.IsEnabled.Returns(true);
+    _promptBuilder.BuildImagePrompt(Arg.Any<SceneGenerationRequest>(), Arg.Any<string>())
+        .Returns(new StoryImagePrompt("prompt", "style"));
+    _imageGeneration.GenerateImageAsync(Arg.Any<StoryImagePrompt>(), Arg.Any<CancellationToken>())
+        .Returns("data:image/jpeg;base64,abc123");
+
+    var result = await _sut.Handle(new MakeChoiceCommand(session.Id, "bad"), CancellationToken.None);
+
+    result.Status.Should().Be(nameof(SessionStatus.Lost));
+    result.OutcomeImageUrl.Should().Be("data:image/jpeg;base64,abc123");
+  }
+
   private static AdventureSession CreateSessionAtFirstScene(int targetSceneCount, int maxBadChoices = 3)
   {
     var session = AdventureSession.Start(Guid.NewGuid(), "pokemon", targetSceneCount, maxBadChoices);

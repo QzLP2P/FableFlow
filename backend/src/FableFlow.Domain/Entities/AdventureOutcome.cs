@@ -5,10 +5,11 @@ namespace FableFlow.Domain.Entities;
 /// <summary>Issue finale d'une aventure terminée.</summary>
 public sealed class AdventureOutcome
 {
-  private AdventureOutcome(SessionStatus status, string message)
+  private AdventureOutcome(SessionStatus status, string message, string? imageUrl)
   {
     Status = status;
     Message = message;
+    ImageUrl = imageUrl;
   }
 
   /// <summary>Statut terminal (<see cref="SessionStatus.Won"/>, <see cref="SessionStatus.Lost"/> ou <see cref="SessionStatus.Completed"/>).</summary>
@@ -17,9 +18,12 @@ public sealed class AdventureOutcome
   /// <summary>Message narratif de conclusion.</summary>
   public string Message { get; }
 
-  public static AdventureOutcome Won(string message) => new(SessionStatus.Won, message);
+  /// <summary>Illustration de la scène finale, le cas échéant (génération non garantie).</summary>
+  public string? ImageUrl { get; }
 
-  public static AdventureOutcome Lost(string message) => new(SessionStatus.Lost, message);
+  public static AdventureOutcome Won(string message, string? imageUrl = null) => new(SessionStatus.Won, message, imageUrl);
 
-  public static AdventureOutcome Completed(string message) => new(SessionStatus.Completed, message);
+  public static AdventureOutcome Lost(string message, string? imageUrl = null) => new(SessionStatus.Lost, message, imageUrl);
+
+  public static AdventureOutcome Completed(string message, string? imageUrl = null) => new(SessionStatus.Completed, message, imageUrl);
 }

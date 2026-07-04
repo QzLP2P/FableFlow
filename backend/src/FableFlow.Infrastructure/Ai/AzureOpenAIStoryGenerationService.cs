@@ -22,6 +22,12 @@ public sealed class AzureOpenAIStoryGenerationService : IStoryGenerationService
 {
   private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
+  // Réglages favorisant des scènes et propositions plus créatives/inventives plutôt que des
+  // formulations génériques ou répétitives, sans sacrifier la cohérence narrative globale.
+  private const float CreativeTemperature = 1.15f;
+  private const float CreativePresencePenalty = 0.4f;
+  private const float CreativeFrequencyPenalty = 0.3f;
+
   private readonly ChatClient _chatClient;
   private readonly ILogger<AzureOpenAIStoryGenerationService> _logger;
 
@@ -46,7 +52,10 @@ public sealed class AzureOpenAIStoryGenerationService : IStoryGenerationService
 
     var chatOptions = new ChatCompletionOptions
     {
-      ResponseFormat = ChatResponseFormat.CreateJsonObjectFormat()
+      ResponseFormat = ChatResponseFormat.CreateJsonObjectFormat(),
+      Temperature = CreativeTemperature,
+      PresencePenalty = CreativePresencePenalty,
+      FrequencyPenalty = CreativeFrequencyPenalty
     };
 
     ClientResult<ChatCompletion> completion;
@@ -77,7 +86,10 @@ public sealed class AzureOpenAIStoryGenerationService : IStoryGenerationService
 
     var chatOptions = new ChatCompletionOptions
     {
-      ResponseFormat = ChatResponseFormat.CreateJsonObjectFormat()
+      ResponseFormat = ChatResponseFormat.CreateJsonObjectFormat(),
+      Temperature = CreativeTemperature,
+      PresencePenalty = CreativePresencePenalty,
+      FrequencyPenalty = CreativeFrequencyPenalty
     };
 
     ClientResult<ChatCompletion> completion;

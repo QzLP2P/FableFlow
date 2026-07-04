@@ -1,6 +1,7 @@
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
+import Box from '@mui/material/Box';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import SentimentDissatisfiedIcon from '@mui/icons-material/SentimentDissatisfied';
 import AutoStoriesIcon from '@mui/icons-material/AutoStories';
@@ -10,6 +11,7 @@ import type { AdventureStatus } from '../api/types';
 interface OutcomeScreenProps {
   status: AdventureStatus;
   message: string | null;
+  imageUrl: string | null;
   onRestart: () => void;
 }
 
@@ -21,7 +23,7 @@ const OUTCOME_CONFIG: Record<AdventureStatus, { label: string; icon: ReactNode; 
 };
 
 /** Écran de conclusion d'une aventure : victoire, défaite ou fin neutre. */
-export function OutcomeScreen({ status, message, onRestart }: OutcomeScreenProps) {
+export function OutcomeScreen({ status, message, imageUrl, onRestart }: OutcomeScreenProps) {
   const config = OUTCOME_CONFIG[status];
 
   return (
@@ -32,6 +34,21 @@ export function OutcomeScreen({ status, message, onRestart }: OutcomeScreenProps
           {config.label}
         </Typography>
       </Stack>
+      {imageUrl && (
+        <Box
+          component="img"
+          src={imageUrl}
+          alt="Illustration de la conclusion de l'aventure"
+          sx={{
+            width: '100%',
+            maxWidth: 480,
+            borderRadius: 3,
+            display: 'block',
+            aspectRatio: '1 / 1',
+            objectFit: 'cover',
+          }}
+        />
+      )}
       {message && (
         <Typography variant="body1" sx={{ maxWidth: '60ch' }}>
           {message}
@@ -43,3 +60,4 @@ export function OutcomeScreen({ status, message, onRestart }: OutcomeScreenProps
     </Stack>
   );
 }
+

@@ -66,6 +66,7 @@ export function AdventurePage() {
           <OutcomeScreen
             status={adventure.status}
             message={adventure.outcomeMessage}
+            imageUrl={adventure.outcomeImageUrl}
             onRestart={() => navigate('/')}
           />
         )}

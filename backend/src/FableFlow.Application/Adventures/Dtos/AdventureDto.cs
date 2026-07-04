@@ -17,7 +17,8 @@ public sealed record AdventureDto(
     int CurrentSceneNumber,
     int TargetSceneCount,
     SceneDto? CurrentScene,
-    string? OutcomeMessage);
+    string? OutcomeMessage,
+    string? OutcomeImageUrl);
 
 /// <summary>Historique des scènes jouées.</summary>
 public sealed record AdventureHistoryDto(

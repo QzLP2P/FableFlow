@@ -18,15 +18,30 @@ public sealed class HardcodedThemePolicyProvider : IThemePolicyProvider
             audience: AudienceTarget.Child,
             vocabularyLevel: VocabularyLevel.Simple,
             narrativeUniverse:
-                "Un jeune dresseur explore un monde peuplé de créatures Pokémon, noue des amitiés et " +
-                "affronte un rival récurrent, aussi compétitif que bienveillant. Il déjoue les plans " +
-                "souvent maladroits de la Team Rocket, part parfois à la découverte de Pokémon " +
-                "légendaires, vit des combats inopinés en chemin ainsi que des combats d'arène face à " +
-                "des champions, et progresse vers un objectif (badge, tournoi, Ligue Pokémon, exploration).",
+                "Sacha Ketchoum est le jeune dresseur au centre de l'histoire, toujours accompagné de " +
+                "son fidèle Pikachu (attaques Éclair, Tonnerre). Selon les régions traversées, il voyage " +
+                "avec des compagnons récurrents : Ondine et Pierre à Kanto/Johto, Flora et Max à Hoenn, " +
+                "Aurore à Sinnoh, Iris et Rachid à Unys, Serena, Lem et Clem à Kalos, puis Lilie, Kiawe, " +
+                "Néphie, Chrys et enfin Gladio à Alola. Il croise aussi des rivaux marquants selon les " +
+                "sagas : Régis (rival historique depuis ses débuts), Paul (rival intense de Sinnoh), Niko " +
+                "(rival d'Unys), Liam (rival de Kalos), Alain (adversaire majeur de la Ligue de Kalos) et " +
+                "Gladio (rival d'Alola) ; d'autres dresseurs croisés en chemin comme Richie, Harrison, " +
+                "Morrison, Tyson, Barry, Tobias, Bianca, Jules, Alexis, Virgile, Tierno, Trovato ou Tili " +
+                "peuvent aussi apparaître ponctuellement. Son équipe compte, en plus de Pikachu, des " +
+                "Pokémon emblématiques comme Dracaufeu (évolution de Salamèche puis Reptincel ; " +
+                "Lance-Flammes, Déflagration), Roucarnage (évolution de Roucool puis Roucoups ; " +
+                "Vive-Attaque, Aile d'Acier), Papillusion (évolution de Chenipan puis Chrysacier), " +
+                "Bulbizarre (Fouet Lianes, Lance-Soleil), Carabaffe ou Tortank (Pistolet à Ô, Hydrocanon), " +
+                "Krabboss, Rattatac, Colossinge (Poing-Karaté), Tauros, Lokhlass (Pistolet à Ô, Blizzard) " +
+                "et Ronflex (Coup de Mâchoire, Plaquage). Il part parfois à la découverte de Pokémon " +
+                "légendaires, déjoue les plans souvent maladroits de la Team Rocket, vit des combats " +
+                "inopinés en chemin ainsi que des combats d'arène face à des champions, et progresse vers " +
+                "un objectif (badge, tournoi, Ligue Pokémon, exploration).",
             safetyConstraints:
             [
                 "Aucune violence graphique : les combats restent sportifs et sans blessure décrite, " +
-                "y compris face à la Team Rocket, toujours plus maladroite que réellement menaçante.",
+                "y compris face à la Team Rocket ou aux rivaux, toujours plus compétitifs que réellement " +
+                "menaçants.",
                 "Aucun langage grossier ni thème adulte.",
                 "Ton positif, encourageant, orienté amitié et persévérance."
             ],
@@ -38,10 +53,17 @@ public sealed class HardcodedThemePolicyProvider : IThemePolicyProvider
             audience: AudienceTarget.Child,
             vocabularyLevel: VocabularyLevel.Simple,
             narrativeUniverse:
-                "Un jeune super-héros protège son quartier, aide ses voisins et affronte des " +
-                "super-vilains hauts en couleur - un Rhino cuirassé, un facétieux Bouffon Vert sur son " +
-                "deltaplane, ou encore l'Homme de Sable capable de se transformer en tempête de sable - " +
-                "à l'aide de ruse et d'entraide, sans jamais recourir à une violence réelle.",
+                "Spidey (Peter Parker) forme une équipe de jeunes héros avec Ghost-Spider (Gwen Stacy), " +
+                "agile et dotée d'ailes de toile lui permettant de planer, et Spin (Miles Morales), capable " +
+                "de devenir invisible et très agile. Chaque héros utilise son sens d'araignée, ses tirs de " +
+                "toiles et son agilité pour protéger le quartier. Ensemble, ils affrontent des super-vilains " +
+                "hauts en couleur : Electro (contrôle et projette l'électricité), le Bouffon Vert (génie " +
+                "facétieux du chaos, gadgets, planeur et bombes-lanternes), Docteur Octopus (bras " +
+                "mécaniques puissants qui attrapent et manipulent des objets à distance), Rhino (force " +
+                "surhumaine et armure cuirassée), l'Homme de Sable (corps de sable capable de s'étirer et " +
+                "d'encaisser les chocs) et Zola (menace technologique, robots et gadgets plutôt que force " +
+                "physique). Les plans de ces vilains sont toujours déjoués par la ruse et l'entraide plutôt " +
+                "que par la violence.",
             safetyConstraints:
             [
                 "Aucune violence graphique : les affrontements avec les super-vilains se règlent par la " +

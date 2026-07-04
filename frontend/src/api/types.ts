@@ -33,6 +33,7 @@ export interface AdventureDto {
   targetSceneCount: number;
   currentScene: SceneDto | null;
   outcomeMessage: string | null;
+  outcomeImageUrl: string | null;
 }
 
 export interface AdventureHistoryDto {

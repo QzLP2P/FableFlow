@@ -28,7 +28,8 @@ public static class AdventureMapper
         session.CurrentSceneNumber,
         session.TargetSceneCount,
         currentScene,
-        session.Outcome?.Message);
+        session.Outcome?.Message,
+        session.Outcome?.ImageUrl);
   }
 
   public static AdventureHistoryDto ToHistoryDto(this AdventureSession session) =>
