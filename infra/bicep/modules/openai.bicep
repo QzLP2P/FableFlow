@@ -22,8 +22,8 @@ param chatCapacity int = 10
 @description('Nom du déploiement du modèle de génération d\'image (ex. FLUX.2-pro).')
 param imageModelName string = 'FLUX.2-pro'
 
-@description('Format/éditeur du modèle d\'image tel qu\'enregistré dans le catalogue Foundry (à vérifier via le portail Foundry avant déploiement).')
-param imageModelFormat string = 'BlackForestLabs'
+@description('Format/éditeur du modèle d\'image tel qu\'enregistré dans le catalogue Foundry (vérifié via `az cognitiveservices model list --location <region>`).')
+param imageModelFormat string = 'Black Forest Labs'
 
 @description('Version du modèle d\'image à déployer.')
 param imageModelVersion string = '1'
