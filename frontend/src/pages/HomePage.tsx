@@ -64,7 +64,7 @@ export function HomePage() {
       <Stack spacing={3}>
         <Stack spacing={1}>
           <Typography variant="h1" component="h1">
-            FableFlow
+            Prêt pour l'aventure ?
           </Typography>
           <Typography variant="body1" color="text.secondary">
             Choisis un thème et une durée pour démarrer ton aventure interactive.
