@@ -1,6 +1,6 @@
-import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-import type { SceneDto } from '../api/types';
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
+import type { SceneDto } from "../api/types";
 
 interface SceneViewProps {
   scene: SceneDto;
@@ -17,7 +17,7 @@ export function SceneView({ scene }: SceneViewProps) {
     <Box>
       <Typography
         variant="body1"
-        sx={{ whiteSpace: 'pre-line', maxWidth: '68ch' }}
+        sx={{ whiteSpace: "pre-line", maxWidth: "68ch" }}
       >
         {scene.text}
       </Typography>

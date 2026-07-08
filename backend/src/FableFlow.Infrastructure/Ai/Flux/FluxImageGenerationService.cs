@@ -21,7 +21,7 @@ namespace FableFlow.Infrastructure.Ai.Flux;
 /// </summary>
 public sealed class FluxImageGenerationService : IImageGenerationService
 {
-  private static readonly TokenRequestContext FoundryTokenContext = new(["https://ai.azure.com/.default"]);
+  private static readonly TokenRequestContext _foundryTokenContext = new(["https://ai.azure.com/.default"]);
 
   private readonly HttpClient _httpClient;
   private readonly FluxImageOptions _options;
@@ -159,7 +159,7 @@ public sealed class FluxImageGenerationService : IImageGenerationService
   {
     if (_credential is not null)
     {
-      var token = await _credential.GetTokenAsync(FoundryTokenContext, cancellationToken);
+      var token = await _credential.GetTokenAsync(_foundryTokenContext, cancellationToken);
       _httpClient.DefaultRequestHeaders.Authorization =
           new AuthenticationHeaderValue("Bearer", token.Token);
       return;

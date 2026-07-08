@@ -180,6 +180,34 @@ public class AdventureSessionTests
   }
 
   [Fact]
+  public void SetStoryOutline_WithNonEmptyOutline_StoresIt()
+  {
+    var session = AdventureSession.Start(Guid.NewGuid(), "pokemon", targetSceneCount: 5);
+
+    session.SetStoryOutline(["Introduction", "Complication", "Dénouement"]);
+
+    session.StoryOutline.Should().Equal("Introduction", "Complication", "Dénouement");
+  }
+
+  [Fact]
+  public void SetStoryOutline_WithEmptyOutline_LeavesStoryOutlineEmpty()
+  {
+    var session = AdventureSession.Start(Guid.NewGuid(), "pokemon", targetSceneCount: 5);
+
+    session.SetStoryOutline([]);
+
+    session.StoryOutline.Should().BeEmpty();
+  }
+
+  [Fact]
+  public void StoryOutline_BeforeBeingSet_IsEmpty()
+  {
+    var session = AdventureSession.Start(Guid.NewGuid(), "pokemon", targetSceneCount: 5);
+
+    session.StoryOutline.Should().BeEmpty();
+  }
+
+  [Fact]
   public void AttachImageToScene_WithExistingSceneNumber_AttachesImageEvenIfNotCurrentScene()
   {
     var session = AdventureSession.Start(Guid.NewGuid(), "pokemon", targetSceneCount: 5);

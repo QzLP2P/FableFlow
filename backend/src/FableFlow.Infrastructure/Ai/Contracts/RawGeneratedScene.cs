@@ -25,4 +25,10 @@ public sealed class RawGeneratedScene
 
   /// <summary>Description visuelle générique de la scène, sans nom propre ni marque déposée.</summary>
   public string ImagePrompt { get; set; } = string.Empty;
+
+  /// <summary>
+  /// Plan d'ensemble de l'aventure (uniquement demandé pour une scène de type Initial ; vide pour
+  /// une continuation/fin).
+  /// </summary>
+  public List<string> StoryOutline { get; set; } = [];
 }

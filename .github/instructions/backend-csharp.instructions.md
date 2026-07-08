@@ -19,7 +19,10 @@ applyTo: "backend/**/*.cs"
 ## Style
 
 - `namespace` file-scoped, nullable activé, `using` System en premier.
-- Champs privés `_camelCase` et `readonly` par défaut.
+- Champs privés `_camelCase` et `readonly` par défaut. Cette règle s'applique à **tout** champ
+  `private` (instance, `static readonly` et `const` inclus) — ex. `private const string _reasoningEffort = "minimal";`,
+  pas `ReasoningEffort`. Voir la règle `.editorconfig` (`dotnet_naming_rule.private_fields_underscore`,
+  `severity = warning`) : elle cible `applicable_kinds = field` sans exclure `const`/`static`.
 - Async pour l'I/O, suffixe `Async`, `CancellationToken` propagé.
 - Injection par constructeur uniquement. Pas de `service locator`.
 

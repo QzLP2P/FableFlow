@@ -18,9 +18,15 @@ public sealed record GeneratedChoice(string Id, string Label, ChoiceOutcome Outc
 /// marques déposées (personnages, franchises), destinée à la génération d'image. Voir
 /// <see cref="Prompts.PromptTemplateRegistry.SceneSystemPrompt"/> pour la consigne donnée au LLM.
 /// </param>
+/// <param name="StoryOutline">
+/// Plan d'ensemble de l'aventure (quelques grandes étapes/actes), demandé UNIQUEMENT pour une scène
+/// de type <see cref="SceneKind.Initial"/> ; <c>null</c> ou vide pour une continuation/fin (le plan
+/// est déjà fixé sur la session, voir <c>AdventureSession.StoryOutline</c>).
+/// </param>
 public sealed record GeneratedScene(
     string Text,
     IReadOnlyList<GeneratedChoice> Choices,
     string UpdatedSummary,
     IReadOnlyList<string> KeyFacts,
-    string ImagePrompt);
+    string ImagePrompt,
+    IReadOnlyList<string>? StoryOutline = null);

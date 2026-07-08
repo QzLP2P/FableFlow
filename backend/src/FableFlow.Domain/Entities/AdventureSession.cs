@@ -59,6 +59,15 @@ public sealed class AdventureSession
   /// <summary>Résumé courant alimentant la mémoire narrative.</summary>
   public string RunningSummary { get; private set; }
 
+  /// <summary>
+  /// Plan d'ensemble de l'aventure (quelques grandes étapes/actes, pas une par scène), généré une
+  /// fois avec la scène initiale et utilisé comme fil conducteur pour toutes les scènes suivantes
+  /// afin de garantir une progression cohérente sur toute la durée de l'aventure. Vide tant qu'il
+  /// n'a pas encore été fixé (ou si le LLM n'en a pas fourni). Usage interne à la génération
+  /// narrative uniquement : jamais exposé au client (pas de spoiler de l'histoire).
+  /// </summary>
+  public IReadOnlyList<string> StoryOutline { get; private set; } = [];
+
   public AdventureOutcome? Outcome { get; private set; }
 
   /// <summary>Instantané des scènes ; une copie est retournée à chaque accès pour rester sûre en cas d'écriture concurrente.</summary>
@@ -176,6 +185,24 @@ public sealed class AdventureSession
     lock (_gate)
     {
       RunningSummary = summary ?? string.Empty;
+    }
+  }
+
+  /// <summary>
+  /// Fixe le plan d'ensemble généré avec la scène initiale (voir <see cref="StoryOutline"/>). Ne
+  /// fait rien si le plan fourni est vide (le LLM n'en a pas produit, ou appel pour une scène de
+  /// continuation/fin qui ne doit pas en générer).
+  /// </summary>
+  public void SetStoryOutline(IReadOnlyList<string> outline)
+  {
+    if (outline is null || outline.Count == 0)
+    {
+      return;
+    }
+
+    lock (_gate)
+    {
+      StoryOutline = [.. outline];
     }
   }
 

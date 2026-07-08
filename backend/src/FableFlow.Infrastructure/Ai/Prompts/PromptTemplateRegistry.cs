@@ -8,7 +8,7 @@ namespace FableFlow.Infrastructure.Ai.Prompts;
 public static class PromptTemplateRegistry
 {
   /// <summary>Version courante du gabarit de génération de scène.</summary>
-  public const string SceneTemplateVersion = "scene-generation@v4";
+  public const string SceneTemplateVersion = "scene-generation@v5";
 
   /// <summary>
   /// Instructions système : rôle, contrat de sortie JSON, garde-fous de contenu génériques.
@@ -27,8 +27,11 @@ public static class PromptTemplateRegistry
             "choices": [ { "id": "a", "label": "...", "outcome": "Good|Bad|Neutral" } ],
             "updatedSummary": "résumé cumulatif mis à jour de toute l'histoire",
             "keyFacts": ["fait clé 1", "fait clé 2"],
-            "imagePrompt": "description visuelle générique de la scène"
+            "imagePrompt": "description visuelle générique de la scène",
+            "storyOutline": ["grande étape 1", "grande étape 2", "..."]
           }
+        - Le champ "storyOutline" n'est requis QUE pour une scène de type "Initial" (voir règle dédiée
+          ci-dessous) : laisse-le vide (tableau vide) pour toute scène de type "Continuation" ou "Ending".
         - Fournis entre 2 et 3 choix maximum, jamais ambigus, clairement distincts dans leurs conséquences.
         - Pour une scène de fin (ending), le tableau "choices" doit être vide.
         - Respecte strictement le niveau de vocabulaire et le public cible indiqués.
@@ -57,6 +60,19 @@ public static class PromptTemplateRegistry
           une aventure longue, prends le temps d'installer plusieurs péripéties secondaires, de
           développer les rencontres et de faire monter la tension progressivement avant le dénouement,
           plutôt que d'atteindre la conclusion trop tôt ou de répéter la même péripétie.
+
+        Règle du plan d'ensemble "storyOutline" (IMPORTANT, uniquement pour une scène de type Initial) :
+        - En plus du texte de cette première scène, fournis un champ "storyOutline" : un tableau de
+          3 à 5 courtes descriptions (une par grande étape/acte de l'histoire, PAS une par scène
+          individuelle : par exemple "Introduction et premier enjeu", "Complication et rencontre
+          marquante", "Montée en tension", "Dénouement"), couvrant l'intégralité de l'aventure du début
+          à la fin, cohérente avec l'axe narratif choisi et le nombre total de scènes indiqué. Ce plan
+          sert de fil conducteur pour toutes les scènes suivantes (il te sera redonné à chaque appel,
+          voir "Plan d'ensemble de l'aventure" dans le prompt utilisateur) : reste assez large pour
+          laisser de la place à l'improvisation scène par scène selon les choix du joueur, mais assez
+          concret pour garantir une progression cohérente, sans scène creuse ni rebondissement qui
+          sort de nulle part. Pour toute autre scène (Continuation, Ending), laisse ce champ vide : le
+          plan est déjà fixé, contente-toi de t'y référer sans le regénérer.
 
         Règle spécifique au champ "imagePrompt" (IMPORTANT) :
         - Le champ "text" peut nommer librement les personnages, créatures ou univers du thème
@@ -90,6 +106,9 @@ public static class PromptTemplateRegistry
         Scène courante : {{current_scene_number}} / {{target_scene_count}}
         Mauvais choix jusqu'ici : {{bad_choice_count}} / {{max_bad_choices}}
         Type de scène à générer : {{scene_kind}}
+
+        # Plan d'ensemble de l'aventure (fil conducteur à respecter ; vide si scène Initial, à toi de le définir)
+        {{story_outline}}
 
         # Mémoire narrative (résumé cumulatif des scènes précédentes)
         {{running_summary}}

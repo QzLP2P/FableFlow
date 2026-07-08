@@ -29,6 +29,7 @@ public sealed class PromptBuilder : IPromptBuilder
         .Replace("{{bad_choice_count}}", request.Session.BadChoiceCount.ToString())
         .Replace("{{max_bad_choices}}", request.Session.MaxBadChoices.ToString())
         .Replace("{{scene_kind}}", request.Kind.ToString())
+        .Replace("{{story_outline}}", BuildStoryOutlineSection(request))
         .Replace("{{running_summary}}", string.IsNullOrWhiteSpace(request.Session.RunningSummary)
             ? "(Aucune scène précédente, il s'agit du tout début de l'aventure.)"
             : request.Session.RunningSummary)
@@ -82,6 +83,24 @@ public sealed class PromptBuilder : IPromptBuilder
         userPrompt,
         PromptTemplateRegistry.PremiseTemplateVersion,
         count);
+  }
+
+  /// <summary>
+  /// Construit la section "plan d'ensemble" du prompt utilisateur. Pour une scène Initial, le plan
+  /// n'existe pas encore (c'est au LLM de le produire dans sa réponse, voir la règle système
+  /// "storyOutline") ; pour une continuation/fin, on redonne le plan déjà fixé sur la session
+  /// (<see cref="AdventureSession.StoryOutline"/>) comme fil conducteur.
+  /// </summary>
+  private static string BuildStoryOutlineSection(SceneGenerationRequest request)
+  {
+    if (request.Kind == SceneKind.Initial)
+    {
+      return "(Aucun plan existant : à toi de le définir dans le champ \"storyOutline\" de ta réponse JSON.)";
+    }
+
+    return request.Session.StoryOutline.Count == 0
+        ? "(Aucun plan d'ensemble disponible : improvise en cohérence avec le résumé et l'axe narratif ci-dessus.)"
+        : FormatBulletList(request.Session.StoryOutline);
   }
 
   private static string BuildVictoryDefeatConditions(SceneGenerationRequest request)

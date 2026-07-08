@@ -1,7 +1,7 @@
-import { useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { getAdventure } from '../api/apiClient';
-import type { AdventureDto } from '../api/types';
+import { useQuery } from "@tanstack/react-query";
+import { useRef } from "react";
+import { getAdventure } from "../api/apiClient";
+import type { AdventureDto } from "../api/types";
 
 /** Intervalle de sondage (ms) tant qu'une illustration est encore en cours de génération. */
 const IMAGE_POLL_INTERVAL_MS = 2500;
@@ -13,18 +13,20 @@ const IMAGE_POLL_TIMEOUT_MS = 45_000;
  * Identifie le cycle d'attente d'image courant (scène en cours ou issue finale), ou `null` si
  * aucune image n'est attendue (génération désactivée, ou image déjà disponible).
  */
-function getPendingImageKey(adventure: AdventureDto | undefined): string | null {
+function getPendingImageKey(
+  adventure: AdventureDto | undefined,
+): string | null {
   if (!adventure || !adventure.imageGenerationEnabled) {
     return null;
   }
 
-  if (adventure.status === 'InProgress') {
+  if (adventure.status === "InProgress") {
     return adventure.currentScene && !adventure.currentScene.imageUrl
       ? `scene:${adventure.currentScene.sceneNumber}`
       : null;
   }
 
-  return adventure.outcomeImageUrl ? null : 'outcome';
+  return adventure.outcomeImageUrl ? null : "outcome";
 }
 
 /**
@@ -36,7 +38,7 @@ export function useAdventure(adventureId: string | undefined) {
   const pollState = useRef<{ key: string; startedAt: number } | null>(null);
 
   return useQuery({
-    queryKey: ['adventure', adventureId],
+    queryKey: ["adventure", adventureId],
     queryFn: () => getAdventure(adventureId!),
     enabled: Boolean(adventureId),
     refetchInterval: (query) => {

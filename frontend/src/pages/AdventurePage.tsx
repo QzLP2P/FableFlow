@@ -1,15 +1,15 @@
-import { useNavigate, useParams } from 'react-router-dom';
-import Container from '@mui/material/Container';
-import Stack from '@mui/material/Stack';
-import CircularProgress from '@mui/material/CircularProgress';
-import Alert from '@mui/material/Alert';
-import { useAdventure } from '../hooks/useAdventure';
-import { useMakeChoice } from '../hooks/useMakeChoice';
-import { SceneView } from '../components/SceneView';
-import { SceneIllustration } from '../components/SceneIllustration';
-import { ChoiceButtons } from '../components/ChoiceButtons';
-import { ProgressIndicator } from '../components/ProgressIndicator';
-import { OutcomeScreen } from '../components/OutcomeScreen';
+import Alert from "@mui/material/Alert";
+import CircularProgress from "@mui/material/CircularProgress";
+import Container from "@mui/material/Container";
+import Stack from "@mui/material/Stack";
+import { useNavigate, useParams } from "react-router-dom";
+import { ChoiceButtons } from "../components/ChoiceButtons";
+import { OutcomeScreen } from "../components/OutcomeScreen";
+import { ProgressIndicator } from "../components/ProgressIndicator";
+import { SceneIllustration } from "../components/SceneIllustration";
+import { SceneView } from "../components/SceneView";
+import { useAdventure } from "../hooks/useAdventure";
+import { useMakeChoice } from "../hooks/useMakeChoice";
 
 /** Page de jeu : affiche la scène courante et gère les choix de l'utilisateur jusqu'à la fin. */
 export function AdventurePage() {
@@ -31,12 +31,14 @@ export function AdventurePage() {
   if (isError || !adventure) {
     return (
       <Container sx={{ py: 6 }}>
-        <Alert severity="error">Aventure introuvable ou API indisponible.</Alert>
+        <Alert severity="error">
+          Aventure introuvable ou API indisponible.
+        </Alert>
       </Container>
     );
   }
 
-  const isFinished = adventure.status !== 'InProgress';
+  const isFinished = adventure.status !== "InProgress";
 
   return (
     <Container sx={{ py: { xs: 3, sm: 6 } }}>
@@ -75,7 +77,7 @@ export function AdventurePage() {
             message={adventure.outcomeMessage}
             imageUrl={adventure.outcomeImageUrl}
             imageGenerationEnabled={adventure.imageGenerationEnabled}
-            onRestart={() => navigate('/')}
+            onRestart={() => navigate("/")}
           />
         )}
       </Stack>

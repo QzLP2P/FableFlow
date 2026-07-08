@@ -54,6 +54,7 @@ public sealed class StartAdventureCommandHandler
     var scene = generated.ToDomainScene(sceneNumber: 1);
     session.AttachScene(scene);
     session.UpdateSummary(generated.UpdatedSummary);
+    session.SetStoryOutline(generated.StoryOutline ?? []);
 
     await _repository.SaveAsync(session, cancellationToken);
 

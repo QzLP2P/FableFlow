@@ -75,6 +75,36 @@ public class StartAdventureCommandHandlerTests
   }
 
   [Fact]
+  public async Task Handle_WithGeneratedStoryOutline_StoresItOnSession()
+  {
+    var theme = CreateTheme();
+    _themeProvider.FindThemeAsync("pokemon", Arg.Any<CancellationToken>()).Returns(theme);
+
+    _promptBuilder.BuildScenePrompt(Arg.Any<SceneGenerationRequest>())
+        .Returns(new StoryPrompt("system", "user", "v1", SceneKind.Initial, 1));
+
+    _storyGeneration.GenerateSceneAsync(Arg.Any<StoryPrompt>(), Arg.Any<CancellationToken>())
+        .Returns(new GeneratedScene(
+            "Il était une fois...",
+            [new GeneratedChoice("a", "Explorer", ChoiceOutcome.Neutral)],
+            "Résumé initial",
+            [],
+            "Description générique de la scène",
+            ["Introduction", "Complication", "Dénouement"]));
+
+    _imageGeneration.IsEnabled.Returns(false);
+
+    AdventureSession? savedSession = null;
+    _repository.SaveAsync(Arg.Do<AdventureSession>(s => savedSession = s), Arg.Any<CancellationToken>())
+        .Returns(Task.CompletedTask);
+
+    await _sut.Handle(new StartAdventureCommand("pokemon", 5), CancellationToken.None);
+
+    savedSession.Should().NotBeNull();
+    savedSession!.StoryOutline.Should().Equal("Introduction", "Complication", "Dénouement");
+  }
+
+  [Fact]
   public async Task Handle_WhenCalled_ReturnsSceneWithoutWaitingForImageAndSchedulesItInBackground()
   {
     var theme = CreateTheme();

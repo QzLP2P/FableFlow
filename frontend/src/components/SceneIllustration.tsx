@@ -1,8 +1,8 @@
-import Box from '@mui/material/Box';
-import Fade from '@mui/material/Fade';
-import CircularProgress from '@mui/material/CircularProgress';
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
+import Box from "@mui/material/Box";
+import CircularProgress from "@mui/material/CircularProgress";
+import Fade from "@mui/material/Fade";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 
 interface SceneIllustrationProps {
   /** URL de l'illustration, ou `null` tant qu'elle n'est pas encore prête. */
@@ -18,7 +18,11 @@ interface SceneIllustrationProps {
  * fin : le texte (rapide) n'attend jamais l'image (plus lente à générer). Tant que l'image n'est pas
  * prête, un espace réservé de même taille évite tout saut de mise en page lorsqu'elle apparaît.
  */
-export function SceneIllustration({ imageUrl, alt, enabled }: SceneIllustrationProps) {
+export function SceneIllustration({
+  imageUrl,
+  alt,
+  enabled,
+}: SceneIllustrationProps) {
   if (!enabled) {
     return null;
   }
@@ -26,11 +30,11 @@ export function SceneIllustration({ imageUrl, alt, enabled }: SceneIllustrationP
   return (
     <Box
       sx={{
-        width: '100%',
+        width: "100%",
         borderRadius: 3,
-        overflow: 'hidden',
-        aspectRatio: '1 / 1',
-        bgcolor: 'action.hover',
+        overflow: "hidden",
+        aspectRatio: "1 / 1",
+        bgcolor: "action.hover",
       }}
     >
       {imageUrl ? (
@@ -39,7 +43,12 @@ export function SceneIllustration({ imageUrl, alt, enabled }: SceneIllustrationP
             component="img"
             src={imageUrl}
             alt={alt}
-            sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            sx={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              display: "block",
+            }}
           />
         </Fade>
       ) : (
@@ -47,7 +56,7 @@ export function SceneIllustration({ imageUrl, alt, enabled }: SceneIllustrationP
           alignItems="center"
           justifyContent="center"
           spacing={1}
-          sx={{ width: '100%', height: '100%' }}
+          sx={{ width: "100%", height: "100%" }}
         >
           <CircularProgress size={28} />
           <Typography variant="caption" color="text.secondary">
