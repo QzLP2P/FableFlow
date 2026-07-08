@@ -28,8 +28,8 @@ param imageModelFormat string = 'Black Forest Labs'
 @description('Version du modèle d\'image à déployer.')
 param imageModelVersion string = '1'
 
-@description('Capacité (unités de débit) du déploiement d\'image.')
-param imageCapacity int = 1
+@description('Capacité (unités de débit) du déploiement d\'image. Une capacité de 1 provoque des HTTP 429 (limitation de débit) fréquents dès qu\'une aventure enchaîne plusieurs scènes (constaté en production via les dépendances Application Insights) ; le code retente désormais automatiquement (voir FluxImageGenerationService), mais une capacité plus généreuse réduit la fréquence des échecs définitifs.')
+param imageCapacity int = 3
 
 var cognitiveServicesOpenAiUserRoleId = '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
 var cognitiveServicesUserRoleId = 'a97b65f3-24c7-4388-baec-2e87135dc908'

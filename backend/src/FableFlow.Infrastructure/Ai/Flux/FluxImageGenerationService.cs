@@ -23,6 +23,15 @@ public sealed class FluxImageGenerationService : IImageGenerationService
 {
   private static readonly TokenRequestContext _foundryTokenContext = new(["https://ai.azure.com/.default"]);
 
+  // Le déploiement FLUX.2-pro tourne avec une capacité volontairement faible (coûts) : des HTTP 429
+  // (limitation de débit) sont donc fréquents en usage normal, constatés en pratique via les
+  // dépendances Application Insights. On retente quelques fois avant d'abandonner, en respectant
+  // l'en-tête "Retry-After" du serveur quand il est présent. Sans impact sur la réponse HTTP au
+  // client : tout ceci se déroule dans le travail en arrière-plan (voir ISceneImageJobScheduler).
+  private const int MaxThrottleRetries = 2;
+  private static readonly TimeSpan DefaultThrottleDelay = TimeSpan.FromSeconds(3);
+  private static readonly TimeSpan MaxThrottleDelay = TimeSpan.FromSeconds(15);
+
   private readonly HttpClient _httpClient;
   private readonly FluxImageOptions _options;
   private readonly DefaultAzureCredential? _credential;
@@ -51,7 +60,7 @@ public sealed class FluxImageGenerationService : IImageGenerationService
   public async Task<string?> GenerateImageAsync(StoryImagePrompt prompt, CancellationToken cancellationToken)
   {
     var scenePrompt = $"{prompt.Prompt} Style : {prompt.Style}.";
-    var (image, errorCode) = await TryGenerateAsync(scenePrompt, cancellationToken);
+    var (image, errorCode) = await TryGenerateWithThrottleRetryAsync(scenePrompt, cancellationToken);
     if (image is not null)
     {
       return image;
@@ -72,13 +81,39 @@ public sealed class FluxImageGenerationService : IImageGenerationService
       _logger.LogInformation(
           "Nouvelle tentative de génération d'image avec un prompt générique de repli après un blocage RAI.");
 
-      (image, _) = await TryGenerateAsync(fallbackPrompt, cancellationToken);
+      (image, _) = await TryGenerateWithThrottleRetryAsync(fallbackPrompt, cancellationToken);
     }
 
     return image;
   }
 
-  private async Task<(string? Image, string? ErrorCode)> TryGenerateAsync(
+  /// <summary>
+  /// Exécute <see cref="TryGenerateAsync"/> pour un prompt donné, en retentant jusqu'à
+  /// <see cref="MaxThrottleRetries"/> fois en cas de limitation de débit (HTTP 429), en respectant
+  /// l'en-tête "Retry-After" du serveur si présent (sinon un délai par défaut).
+  /// </summary>
+  private async Task<(string? Image, string? ErrorCode)> TryGenerateWithThrottleRetryAsync(
+      string promptText,
+      CancellationToken cancellationToken)
+  {
+    for (var attempt = 0; ; attempt++)
+    {
+      var (image, errorCode, retryAfter) = await TryGenerateAsync(promptText, cancellationToken);
+      if (image is not null || retryAfter is null || attempt >= MaxThrottleRetries)
+      {
+        return (image, errorCode);
+      }
+
+      _logger.LogWarning(
+          "Génération d'image FLUX limitée (429) : nouvelle tentative dans {DelaySeconds:F1}s ({Attempt}/{MaxAttempts}).",
+          retryAfter.Value.TotalSeconds,
+          attempt + 1,
+          MaxThrottleRetries);
+      await Task.Delay(retryAfter.Value, cancellationToken);
+    }
+  }
+
+  private async Task<(string? Image, string? ErrorCode, TimeSpan? RetryAfter)> TryGenerateAsync(
       string promptText,
       CancellationToken cancellationToken)
   {
@@ -117,7 +152,12 @@ public sealed class FluxImageGenerationService : IImageGenerationService
             "Échec de la génération d'image FLUX ({StatusCode}), la scène sera affichée sans illustration. Réponse : {ErrorBody}",
             (int)response.StatusCode,
             errorBody);
-        return (null, ExtractErrorCode(errorBody));
+
+        var retryAfter = response.StatusCode == HttpStatusCode.TooManyRequests
+            ? GetRetryAfterDelay(response)
+            : (TimeSpan?)null;
+
+        return (null, ExtractErrorCode(errorBody), retryAfter);
       }
 
       var generation = await response.Content.ReadFromJsonAsync<FluxGenerationResponse>(cancellationToken);
@@ -125,18 +165,50 @@ public sealed class FluxImageGenerationService : IImageGenerationService
 
       if (image?.Base64Json is { } base64)
       {
-        return ($"data:image/jpeg;base64,{base64}", null);
+        return ($"data:image/jpeg;base64,{base64}", null, null);
       }
 
-      return (image?.Url, null);
+      return (image?.Url, null, null);
     }
     catch (Exception ex)
     {
       // La génération d'image est une amélioration non bloquante : on journalise et on
       // renvoie null plutôt que de faire échouer toute la scène narrative.
       _logger.LogWarning(ex, "Échec de la génération d'image FLUX, la scène sera affichée sans illustration.");
-      return (null, null);
+      return (null, null, null);
     }
+  }
+
+  /// <summary>Détermine le délai à attendre avant de retenter après un HTTP 429, borné à <see cref="MaxThrottleDelay"/>.</summary>
+  private static TimeSpan GetRetryAfterDelay(HttpResponseMessage response)
+  {
+    var retryAfter = response.Headers.RetryAfter;
+
+    if (retryAfter?.Delta is { } delta)
+    {
+      return Clamp(delta);
+    }
+
+    if (retryAfter?.Date is { } date)
+    {
+      var delay = date - DateTimeOffset.UtcNow;
+      if (delay > TimeSpan.Zero)
+      {
+        return Clamp(delay);
+      }
+    }
+
+    return DefaultThrottleDelay;
+  }
+
+  private static TimeSpan Clamp(TimeSpan value)
+  {
+    if (value < TimeSpan.Zero)
+    {
+      return TimeSpan.Zero;
+    }
+
+    return value > MaxThrottleDelay ? MaxThrottleDelay : value;
   }
 
   private static string? ExtractErrorCode(string errorBody)
