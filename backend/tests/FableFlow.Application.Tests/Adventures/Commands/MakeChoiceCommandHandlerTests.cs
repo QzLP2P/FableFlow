@@ -16,6 +16,7 @@ public class MakeChoiceCommandHandlerTests
   private readonly IPromptBuilder _promptBuilder = Substitute.For<IPromptBuilder>();
   private readonly IStoryGenerationService _storyGeneration = Substitute.For<IStoryGenerationService>();
   private readonly IImageGenerationService _imageGeneration = Substitute.For<IImageGenerationService>();
+  private readonly ISceneImageJobScheduler _imageJobScheduler = Substitute.For<ISceneImageJobScheduler>();
 
   private readonly MakeChoiceCommandHandler _sut;
 
@@ -28,7 +29,8 @@ public class MakeChoiceCommandHandlerTests
         _themeProvider,
         _promptBuilder,
         _storyGeneration,
-        _imageGeneration);
+        _imageGeneration,
+        _imageJobScheduler);
   }
 
   [Fact]
@@ -72,6 +74,36 @@ public class MakeChoiceCommandHandlerTests
   }
 
   [Fact]
+  public async Task Handle_WithImageGenerationEnabled_SchedulesContinuationSceneImageInBackground()
+  {
+    var theme = CreateTheme();
+    var session = CreateSessionAtFirstScene(targetSceneCount: 3);
+
+    _repository.GetAsync(session.Id, Arg.Any<CancellationToken>()).Returns(session);
+    _themeProvider.FindThemeAsync(theme.Id, Arg.Any<CancellationToken>()).Returns(theme);
+
+    _promptBuilder.BuildScenePrompt(Arg.Any<SceneGenerationRequest>())
+        .Returns(new StoryPrompt("system", "user", "v1", SceneKind.Continuation, 2));
+
+    _storyGeneration.GenerateSceneAsync(Arg.Any<StoryPrompt>(), Arg.Any<CancellationToken>())
+        .Returns(new GeneratedScene(
+            "Suite de l'histoire",
+            [new GeneratedChoice("a", "Continuer", ChoiceOutcome.Neutral)],
+            "Résumé mis à jour",
+            [],
+            "Description générique de la scène suivante"));
+
+    _imageGeneration.IsEnabled.Returns(true);
+
+    var result = await _sut.Handle(new MakeChoiceCommand(session.Id, "good"), CancellationToken.None);
+
+    // L'image de la nouvelle scène n'est jamais attendue ici : elle est planifiée en arrière-plan.
+    result.CurrentScene!.ImageUrl.Should().BeNull();
+
+    _imageJobScheduler.Received(1).ScheduleForScene(session.Id, 2, theme, "Description générique de la scène suivante");
+  }
+
+  [Fact]
   public async Task Handle_ReachingMaxBadChoices_GeneratesEndingAndSetsLostOutcome()
   {
     var theme = CreateTheme();
@@ -94,7 +126,7 @@ public class MakeChoiceCommandHandlerTests
   }
 
   [Fact]
-  public async Task Handle_ReachingMaxBadChoices_WithImageGenerationEnabled_AttachesOutcomeImage()
+  public async Task Handle_ReachingMaxBadChoices_WithImageGenerationEnabled_SchedulesOutcomeImageInBackground()
   {
     var theme = CreateTheme();
     var session = CreateSessionAtFirstScene(targetSceneCount: 10, maxBadChoices: 1);
@@ -109,15 +141,15 @@ public class MakeChoiceCommandHandlerTests
         .Returns(new GeneratedScene("Fin tragique", [], "Résumé final", [], "Description générique de la scène finale"));
 
     _imageGeneration.IsEnabled.Returns(true);
-    _promptBuilder.BuildImagePrompt(Arg.Any<SceneGenerationRequest>(), Arg.Any<string>())
-        .Returns(new StoryImagePrompt("prompt", "style"));
-    _imageGeneration.GenerateImageAsync(Arg.Any<StoryImagePrompt>(), Arg.Any<CancellationToken>())
-        .Returns("data:image/jpeg;base64,abc123");
 
     var result = await _sut.Handle(new MakeChoiceCommand(session.Id, "bad"), CancellationToken.None);
 
     result.Status.Should().Be(nameof(SessionStatus.Lost));
-    result.OutcomeImageUrl.Should().Be("data:image/jpeg;base64,abc123");
+    // L'image de l'issue n'est jamais attendue ici : elle est planifiée en arrière-plan.
+    result.OutcomeImageUrl.Should().BeNull();
+    result.ImageGenerationEnabled.Should().BeTrue();
+
+    _imageJobScheduler.Received(1).ScheduleForOutcome(session.Id, theme, "Description générique de la scène finale");
   }
 
   private static AdventureSession CreateSessionAtFirstScene(int targetSceneCount, int maxBadChoices = 3)

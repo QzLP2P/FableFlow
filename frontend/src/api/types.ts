@@ -34,6 +34,7 @@ export interface AdventureDto {
   currentScene: SceneDto | null;
   outcomeMessage: string | null;
   outcomeImageUrl: string | null;
+  imageGenerationEnabled: boolean;
 }
 
 export interface AdventureHistoryDto {

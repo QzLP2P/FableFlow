@@ -2,6 +2,7 @@ using FableFlow.Application.Abstractions;
 using FableFlow.Application.Common.Options;
 using FableFlow.Infrastructure.Ai;
 using FableFlow.Infrastructure.Ai.Flux;
+using FableFlow.Infrastructure.BackgroundJobs;
 using FableFlow.Infrastructure.Options;
 using FableFlow.Infrastructure.Persistence;
 using FableFlow.Infrastructure.Themes;
@@ -35,6 +36,13 @@ public static class InfrastructureServiceCollectionExtensions
     services.AddSingleton<IAdventureRepository, InMemoryAdventureRepository>();
     services.AddSingleton<IPromptBuilder, PromptBuilder>();
     services.AddSingleton<IStoryGenerationService, AzureOpenAIStoryGenerationService>();
+
+    // File de travaux en arrière-plan (génération d'illustration différée, voir SceneImageJobScheduler
+    // côté Application) : un seul singleton concret partagé entre le port (écriture) et le hosted
+    // service qui le consomme (lecture, réservée à l'assembly courant).
+    services.AddSingleton<ChannelBackgroundJobQueue>();
+    services.AddSingleton<IBackgroundJobQueue>(sp => sp.GetRequiredService<ChannelBackgroundJobQueue>());
+    services.AddHostedService<QueuedBackgroundJobHostedService>();
 
     var features = configuration.GetSection(FeatureOptions.SectionName).Get<FeatureOptions>()
         ?? new FeatureOptions();

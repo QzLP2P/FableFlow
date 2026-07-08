@@ -179,6 +179,56 @@ public class AdventureSessionTests
     session.Outcome!.Message.Should().Be("Bravo !");
   }
 
+  [Fact]
+  public void AttachImageToScene_WithExistingSceneNumber_AttachesImageEvenIfNotCurrentScene()
+  {
+    var session = AdventureSession.Start(Guid.NewGuid(), "pokemon", targetSceneCount: 5);
+    session.AttachScene(CreateScene(sceneNumber: 1));
+    session.RecordChoice("good");
+    session.AttachScene(CreateScene(sceneNumber: 2));
+
+    // L'image de la scène 1 arrive alors que la scène 2 est déjà la scène courante (génération
+    // asynchrone en arrière-plan) : elle doit tout de même être attachée à la bonne scène.
+    session.AttachImageToScene(1, "https://images.example/scene-1.png");
+
+    session.Scenes.Single(s => s.SceneNumber == 1).ImageUrl.Should().Be("https://images.example/scene-1.png");
+    session.CurrentScene!.ImageUrl.Should().BeNull();
+  }
+
+  [Fact]
+  public void AttachImageToScene_WithUnknownSceneNumber_DoesNothing()
+  {
+    var session = AdventureSession.Start(Guid.NewGuid(), "pokemon", targetSceneCount: 5);
+    session.AttachScene(CreateScene(sceneNumber: 1));
+
+    var act = () => session.AttachImageToScene(99, "https://images.example/scene.png");
+
+    act.Should().NotThrow();
+  }
+
+  [Fact]
+  public void AttachImageToOutcome_AfterSetOutcome_AttachesImageToExistingOutcome()
+  {
+    var session = CreateWonSession();
+    session.SetOutcome(AdventureOutcome.Won("Bravo !"));
+
+    session.AttachImageToOutcome("https://images.example/outcome.png");
+
+    session.Outcome!.ImageUrl.Should().Be("https://images.example/outcome.png");
+    session.Outcome!.Message.Should().Be("Bravo !");
+  }
+
+  [Fact]
+  public void AttachImageToOutcome_BeforeOutcomeIsSet_DoesNothing()
+  {
+    var session = AdventureSession.Start(Guid.NewGuid(), "pokemon", targetSceneCount: 3);
+
+    var act = () => session.AttachImageToOutcome("https://images.example/outcome.png");
+
+    act.Should().NotThrow();
+    session.Outcome.Should().BeNull();
+  }
+
   /// <summary>Fait progresser une session de 3 scènes jusqu'à la victoire (choix systématiquement bons).</summary>
   private static AdventureSession CreateWonSession()
   {

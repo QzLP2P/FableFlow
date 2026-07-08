@@ -27,6 +27,11 @@ flowchart LR
 
 ## Flux « faire un choix »
 
+Le texte et les choix sont retournés immédiatement ; l'illustration (plus lente à générer) est
+planifiée en arrière-plan via `IBackgroundJobQueue`/`ISceneImageJobScheduler` et attachée à la scène
+dès qu'elle est prête. Le client la récupère par un nouveau `GET /api/adventures/{id}` (polling),
+tant que `AdventureDto.ImageGenerationEnabled` est vrai et qu'aucune image n'est encore attachée.
+
 ```mermaid
 sequenceDiagram
     participant U as Utilisateur
@@ -35,20 +40,30 @@ sequenceDiagram
     participant R as IAdventureRepository
     participant PB as IPromptBuilder
     participant SG as IStoryGenerationService
+    participant SCH as ISceneImageJobScheduler
+    participant Q as IBackgroundJobQueue
     participant IG as IImageGenerationService
 
     U->>API: POST /api/adventures/{id}/choices { choiceId }
     API->>H: MakeChoiceCommand
     H->>R: GetAsync(id)
     H->>H: session.RecordChoice(choiceId)  (Domain)
-    H->>PB: Build(session, theme, choice)
+    H->>PB: BuildScenePrompt(session, theme, choice)
     H->>SG: GenerateSceneAsync(prompt)
-    opt Feature.ImageGeneration
-        H->>IG: GenerateImageAsync(prompt)
-    end
-    H->>R: SaveAsync(session)
-    H-->>API: AdventureDto
+    H->>R: SaveAsync(session)  (sans image)
+    H->>SCH: ScheduleForScene(id, sceneNumber, theme, imagePrompt)
+    SCH->>Q: QueueBackgroundWorkItem(...)
+    H-->>API: AdventureDto (currentScene.imageUrl = null)
     API-->>U: 200 { currentScene, status }
+
+    par En arrière-plan, après la réponse HTTP
+        Q->>IG: GenerateImageAsync(prompt)
+        IG-->>Q: imageUrl
+        Q->>R: GetAsync(id) puis session.AttachImageToScene(...) + SaveAsync
+    end
+
+    U->>API: GET /api/adventures/{id}  (polling tant que imageUrl est absent)
+    API-->>U: 200 { currentScene.imageUrl }
 ```
 
 ## Modèle de session

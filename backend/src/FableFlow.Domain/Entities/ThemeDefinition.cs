@@ -15,7 +15,8 @@ public sealed class ThemeDefinition
       VocabularyLevel vocabularyLevel,
       string narrativeUniverse,
       IReadOnlyList<string> safetyConstraints,
-      string imageStyle)
+      string imageStyle,
+      IReadOnlyList<string>? recurringStoryBeats = null)
   {
     Id = id;
     DisplayName = displayName;
@@ -24,6 +25,7 @@ public sealed class ThemeDefinition
     NarrativeUniverse = narrativeUniverse;
     SafetyConstraints = safetyConstraints;
     ImageStyle = imageStyle;
+    RecurringStoryBeats = recurringStoryBeats ?? [];
   }
 
   public string Id { get; }
@@ -42,6 +44,14 @@ public sealed class ThemeDefinition
 
   /// <summary>Style artistique à appliquer aux images générées.</summary>
   public string ImageStyle { get; }
+
+  /// <summary>
+  /// Situations ou péripéties caractéristiques de l'univers d'origine (ex. capturer un Pokémon,
+  /// affronter un vilain récurrent...), à piocher partiellement à chaque scène pour rapprocher
+  /// l'aventure générée du matériau source plutôt que d'une péripétie générique interchangeable
+  /// entre thèmes. Injectées dans les prompts par la couche Infrastructure.
+  /// </summary>
+  public IReadOnlyList<string> RecurringStoryBeats { get; }
 
   public bool IsForChildren => Audience == AudienceTarget.Child;
 }

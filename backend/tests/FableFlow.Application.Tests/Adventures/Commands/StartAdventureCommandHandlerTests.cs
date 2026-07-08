@@ -16,6 +16,7 @@ public class StartAdventureCommandHandlerTests
   private readonly IPromptBuilder _promptBuilder = Substitute.For<IPromptBuilder>();
   private readonly IStoryGenerationService _storyGeneration = Substitute.For<IStoryGenerationService>();
   private readonly IImageGenerationService _imageGeneration = Substitute.For<IImageGenerationService>();
+  private readonly ISceneImageJobScheduler _imageJobScheduler = Substitute.For<ISceneImageJobScheduler>();
 
   private readonly StartAdventureCommandHandler _sut;
 
@@ -26,7 +27,8 @@ public class StartAdventureCommandHandlerTests
         _repository,
         _promptBuilder,
         _storyGeneration,
-        _imageGeneration);
+        _imageGeneration,
+        _imageJobScheduler);
   }
 
   [Fact]
@@ -67,21 +69,19 @@ public class StartAdventureCommandHandlerTests
     result.CurrentScene.Should().NotBeNull();
     result.CurrentScene!.Text.Should().Be("Il était une fois...");
     result.CurrentScene.Choices.Should().ContainSingle(c => c.Id == "a");
+    result.ImageGenerationEnabled.Should().BeFalse();
 
     await _repository.Received(1).SaveAsync(Arg.Any<AdventureSession>(), Arg.Any<CancellationToken>());
-    await _imageGeneration.DidNotReceive().GenerateImageAsync(Arg.Any<StoryImagePrompt>(), Arg.Any<CancellationToken>());
   }
 
   [Fact]
-  public async Task Handle_WithImageGenerationEnabled_AttachesGeneratedImage()
+  public async Task Handle_WhenCalled_ReturnsSceneWithoutWaitingForImageAndSchedulesItInBackground()
   {
     var theme = CreateTheme();
     _themeProvider.FindThemeAsync("pokemon", Arg.Any<CancellationToken>()).Returns(theme);
 
     _promptBuilder.BuildScenePrompt(Arg.Any<SceneGenerationRequest>())
         .Returns(new StoryPrompt("system", "user", "v1", SceneKind.Initial, 1));
-    _promptBuilder.BuildImagePrompt(Arg.Any<SceneGenerationRequest>(), Arg.Any<string>())
-        .Returns(new StoryImagePrompt("prompt", "style"));
 
     _storyGeneration.GenerateSceneAsync(Arg.Any<StoryPrompt>(), Arg.Any<CancellationToken>())
         .Returns(new GeneratedScene(
@@ -92,12 +92,19 @@ public class StartAdventureCommandHandlerTests
             "Description générique de la scène"));
 
     _imageGeneration.IsEnabled.Returns(true);
-    _imageGeneration.GenerateImageAsync(Arg.Any<StoryImagePrompt>(), Arg.Any<CancellationToken>())
-        .Returns("https://images.example/scene.png");
 
     var result = await _sut.Handle(new StartAdventureCommand("pokemon", 5), CancellationToken.None);
 
-    result.CurrentScene!.ImageUrl.Should().Be("https://images.example/scene.png");
+    // Le texte et les choix sont retournés immédiatement ; l'image n'est jamais attendue ici,
+    // elle est planifiée en arrière-plan (voir ISceneImageJobScheduler) et rattrapée par polling.
+    result.CurrentScene!.ImageUrl.Should().BeNull();
+    result.ImageGenerationEnabled.Should().BeTrue();
+
+    _imageJobScheduler.Received(1).ScheduleForScene(
+        Arg.Any<Guid>(),
+        1,
+        theme,
+        "Description générique de la scène");
   }
 
   private static ThemeDefinition CreateTheme() => new(

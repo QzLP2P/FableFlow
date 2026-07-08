@@ -8,7 +8,7 @@ namespace FableFlow.Infrastructure.Ai.Prompts;
 public static class PromptTemplateRegistry
 {
   /// <summary>Version courante du gabarit de génération de scène.</summary>
-  public const string SceneTemplateVersion = "scene-generation@v3";
+  public const string SceneTemplateVersion = "scene-generation@v4";
 
   /// <summary>
   /// Instructions système : rôle, contrat de sortie JSON, garde-fous de contenu génériques.
@@ -42,6 +42,22 @@ public static class PromptTemplateRegistry
           l'univers narratif et les contraintes de sécurité.
         - Prépare une issue cohérente si la session est proche de sa fin (victoire ou défaite).
 
+        Règle de fidélité à l'univers d'origine (IMPORTANT) :
+        - La section "Éléments narratifs caractéristiques de l'univers" du prompt utilisateur liste des
+          situations emblématiques de l'histoire originale (ex. capturer un Pokémon, un combat d'Arène,
+          l'apparition régulière d'un vilain récurrent...). Pioche-en UN OU DEUX par scène (jamais tous
+          à la fois) pour ancrer l'aventure dans des situations reconnaissables de l'univers d'origine,
+          plutôt que dans une péripétie générique interchangeable avec un autre thème. Ne répète pas le
+          même élément deux scènes de suite et varie sur la durée de l'aventure.
+
+        Règle de rythme narratif (IMPORTANT) :
+        - Adapte la densité de l'histoire au nombre total de scènes indiqué dans "État de la session"
+          et aux indications de la section "Structure attendue de la scène suivante". Pour une aventure
+          courte, va à l'essentiel : installe l'enjeu et enchaîne rapidement vers sa résolution. Pour
+          une aventure longue, prends le temps d'installer plusieurs péripéties secondaires, de
+          développer les rencontres et de faire monter la tension progressivement avant le dénouement,
+          plutôt que d'atteindre la conclusion trop tôt ou de répéter la même péripétie.
+
         Règle spécifique au champ "imagePrompt" (IMPORTANT) :
         - Le champ "text" peut nommer librement les personnages, créatures ou univers du thème
           (ex. noms propres de franchises), car c'est un contenu narratif destiné à la lecture.
@@ -59,6 +75,9 @@ public static class PromptTemplateRegistry
   public const string SceneUserTemplate = """
         # Thème
         {{theme_name}} — {{narrative_universe}}
+
+        # Éléments narratifs caractéristiques de l'univers (piocher 1 ou 2 par scène, varier d'une scène à l'autre)
+        {{recurring_story_beats}}
 
         # Public cible et vocabulaire
         Public : {{audience}}
@@ -89,7 +108,7 @@ public static class PromptTemplateRegistry
         """;
 
   /// <summary>Version courante du gabarit de génération de propositions d'axe narratif.</summary>
-  public const string PremiseTemplateVersion = "story-premises@v2";
+  public const string PremiseTemplateVersion = "story-premises@v3";
 
   /// <summary>Instructions système pour la génération de plusieurs propositions d'axe narratif.</summary>
   public const string PremiseSystemPrompt = """
@@ -104,6 +123,9 @@ public static class PromptTemplateRegistry
           }
         - Fournis exactement le nombre de propositions demandé.
         - Chaque proposition doit être clairement différente des autres (enjeu, lieu ou objectif différent).
+        - Inspire-toi des éléments narratifs caractéristiques de l'univers listés dans le prompt
+          utilisateur (section dédiée) pour proposer des axes fidèles à l'esprit de l'histoire
+          originale, sans pour autant tous les caser dans une seule proposition.
         - Sois créatif et inventif : propose des idées originales et variées plutôt que les scénarios les
           plus évidents ou attendus du thème. Explore des lieux, enjeux ou rencontres inhabituels tout en
           restant cohérent avec l'univers narratif.
@@ -117,6 +139,9 @@ public static class PromptTemplateRegistry
   public const string PremiseUserTemplate = """
         # Thème
         {{theme_name}} — {{narrative_universe}}
+
+        # Éléments narratifs caractéristiques de l'univers (inspiration, ne pas tous utiliser à la fois)
+        {{recurring_story_beats}}
 
         # Public cible et vocabulaire
         Public : {{audience}}

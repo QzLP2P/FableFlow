@@ -1,4 +1,6 @@
 using System.Reflection;
+using FableFlow.Application.Abstractions;
+using FableFlow.Application.Adventures.Services;
 using FableFlow.Application.Common.Behaviors;
 using FluentValidation;
 using MediatR;
@@ -18,6 +20,8 @@ public static class ApplicationServiceCollectionExtensions
 
     services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
     services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
+
+    services.AddSingleton<ISceneImageJobScheduler, SceneImageJobScheduler>();
 
     return services;
   }

@@ -17,19 +17,22 @@ public sealed class MakeChoiceCommandHandler
   private readonly IPromptBuilder _promptBuilder;
   private readonly IStoryGenerationService _storyGeneration;
   private readonly IImageGenerationService _imageGeneration;
+  private readonly ISceneImageJobScheduler _imageJobScheduler;
 
   public MakeChoiceCommandHandler(
       IAdventureRepository repository,
       IThemePolicyProvider themeProvider,
       IPromptBuilder promptBuilder,
       IStoryGenerationService storyGeneration,
-      IImageGenerationService imageGeneration)
+      IImageGenerationService imageGeneration,
+      ISceneImageJobScheduler imageJobScheduler)
   {
     _repository = repository;
     _themeProvider = themeProvider;
     _promptBuilder = promptBuilder;
     _storyGeneration = storyGeneration;
     _imageGeneration = imageGeneration;
+    _imageJobScheduler = imageJobScheduler;
   }
 
   public async Task<AdventureDto> Handle(
@@ -57,7 +60,7 @@ public sealed class MakeChoiceCommandHandler
 
     await _repository.SaveAsync(session, cancellationToken);
 
-    return session.ToDto();
+    return session.ToDto(_imageGeneration.IsEnabled);
   }
 
   private async Task GenerateContinuationAsync(
@@ -74,15 +77,9 @@ public sealed class MakeChoiceCommandHandler
     session.AttachScene(nextScene);
     session.UpdateSummary(generated.UpdatedSummary);
 
-    if (_imageGeneration.IsEnabled)
-    {
-      var imagePrompt = _promptBuilder.BuildImagePrompt(generationRequest, generated.ImagePrompt);
-      var imageUrl = await _imageGeneration.GenerateImageAsync(imagePrompt, cancellationToken);
-      if (imageUrl is not null)
-      {
-        session.AttachImageToCurrentScene(imageUrl);
-      }
-    }
+    // Cf. StartAdventureCommandHandler : l'illustration est générée en arrière-plan, sans retarder
+    // la réponse contenant le texte et les choix.
+    _imageJobScheduler.ScheduleForScene(session.Id, nextScene.SceneNumber, theme, generated.ImagePrompt);
   }
 
   private async Task GenerateEndingAsync(
@@ -96,22 +93,16 @@ public sealed class MakeChoiceCommandHandler
     var generated = await _storyGeneration.GenerateSceneAsync(prompt, cancellationToken);
 
     session.UpdateSummary(generated.UpdatedSummary);
+    session.SetOutcome(BuildOutcome(session.Status, generated.Text));
 
-    string? imageUrl = null;
-    if (_imageGeneration.IsEnabled)
-    {
-      var imagePrompt = _promptBuilder.BuildImagePrompt(generationRequest, generated.ImagePrompt);
-      imageUrl = await _imageGeneration.GenerateImageAsync(imagePrompt, cancellationToken);
-    }
-
-    session.SetOutcome(BuildOutcome(session.Status, generated.Text, imageUrl));
+    _imageJobScheduler.ScheduleForOutcome(session.Id, theme, generated.ImagePrompt);
   }
 
-  private static AdventureOutcome BuildOutcome(SessionStatus status, string message, string? imageUrl) => status switch
+  private static AdventureOutcome BuildOutcome(SessionStatus status, string message) => status switch
   {
-    SessionStatus.Won => AdventureOutcome.Won(message, imageUrl),
-    SessionStatus.Lost => AdventureOutcome.Lost(message, imageUrl),
-    SessionStatus.Completed => AdventureOutcome.Completed(message, imageUrl),
+    SessionStatus.Won => AdventureOutcome.Won(message),
+    SessionStatus.Lost => AdventureOutcome.Lost(message),
+    SessionStatus.Completed => AdventureOutcome.Completed(message),
     _ => throw new InvalidOperationException($"Statut terminal inattendu : {status}.")
   };
 }

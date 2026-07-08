@@ -1,3 +1,4 @@
+using System.Threading;
 using FableFlow.Domain.Enums;
 using FableFlow.Domain.Exceptions;
 
@@ -13,6 +14,11 @@ public sealed class AdventureSession
   public const int DefaultMaxBadChoices = 3;
   public const int MinSceneCount = 3;
   public const int MaxSceneCount = 20;
+
+  // Protège les scènes et l'issue contre les accès concurrents : la génération d'image se termine
+  // désormais en arrière-plan (voir ISceneImageJobScheduler côté Application) et peut donc écrire sur
+  // cette session au même moment qu'une requête HTTP en cours (nouveau choix, polling de l'état).
+  private readonly Lock _gate = new();
 
   private readonly List<AdventureScene> _scenes = [];
 
@@ -55,11 +61,20 @@ public sealed class AdventureSession
 
   public AdventureOutcome? Outcome { get; private set; }
 
-  public IReadOnlyList<AdventureScene> Scenes => _scenes;
+  /// <summary>Instantané des scènes ; une copie est retournée à chaque accès pour rester sûre en cas d'écriture concurrente.</summary>
+  public IReadOnlyList<AdventureScene> Scenes
+  {
+    get { lock (_gate) { return [.. _scenes]; } }
+  }
 
-  public AdventureScene? CurrentScene => _scenes.Count == 0 ? null : _scenes[^1];
+  public AdventureScene? CurrentScene
+  {
+    get { lock (_gate) { return GetCurrentSceneNoLock(); } }
+  }
 
   public bool IsFinished => Status != SessionStatus.InProgress;
+
+  private AdventureScene? GetCurrentSceneNoLock() => _scenes.Count == 0 ? null : _scenes[^1];
 
   /// <summary>Démarre une nouvelle aventure.</summary>
   public static AdventureSession Start(
@@ -93,20 +108,23 @@ public sealed class AdventureSession
   {
     ArgumentNullException.ThrowIfNull(scene);
 
-    if (IsFinished)
+    lock (_gate)
     {
-      throw new DomainException("Impossible d'ajouter une scène à une aventure terminée.");
-    }
+      if (IsFinished)
+      {
+        throw new DomainException("Impossible d'ajouter une scène à une aventure terminée.");
+      }
 
-    var expected = CurrentSceneNumber + 1;
-    if (scene.SceneNumber != expected)
-    {
-      throw new DomainException(
-          $"Scène incohérente : attendu {expected}, reçu {scene.SceneNumber}.");
-    }
+      var expected = CurrentSceneNumber + 1;
+      if (scene.SceneNumber != expected)
+      {
+        throw new DomainException(
+            $"Scène incohérente : attendu {expected}, reçu {scene.SceneNumber}.");
+      }
 
-    _scenes.Add(scene);
-    CurrentSceneNumber = scene.SceneNumber;
+      _scenes.Add(scene);
+      CurrentSceneNumber = scene.SceneNumber;
+    }
   }
 
   /// <summary>
@@ -115,70 +133,110 @@ public sealed class AdventureSession
   /// </summary>
   public ChoiceApplicationResult RecordChoice(string choiceId)
   {
-    if (IsFinished)
+    lock (_gate)
     {
-      throw new DomainException("L'aventure est déjà terminée.");
+      if (IsFinished)
+      {
+        throw new DomainException("L'aventure est déjà terminée.");
+      }
+
+      var scene = GetCurrentSceneNoLock()
+          ?? throw new DomainException("Aucune scène courante à jouer.");
+
+      var choice = scene.FindChoice(choiceId)
+          ?? throw new DomainException($"Le choix '{choiceId}' n'existe pas dans la scène courante.");
+
+      scene.MarkChoicePlayed(choice.Id);
+
+      if (choice.Outcome == ChoiceOutcome.Bad)
+      {
+        BadChoiceCount++;
+      }
+
+      if (BadChoiceCount >= MaxBadChoices)
+      {
+        Status = SessionStatus.Lost;
+        return new ChoiceApplicationResult(Status, choice.Outcome, RequiresNextScene: false);
+      }
+
+      var reachedEnd = CurrentSceneNumber >= TargetSceneCount;
+      if (reachedEnd)
+      {
+        Status = BadChoiceCount == 0 ? SessionStatus.Won : SessionStatus.Completed;
+        return new ChoiceApplicationResult(Status, choice.Outcome, RequiresNextScene: false);
+      }
+
+      return new ChoiceApplicationResult(SessionStatus.InProgress, choice.Outcome, RequiresNextScene: true);
     }
-
-    var scene = CurrentScene
-        ?? throw new DomainException("Aucune scène courante à jouer.");
-
-    var choice = scene.FindChoice(choiceId)
-        ?? throw new DomainException($"Le choix '{choiceId}' n'existe pas dans la scène courante.");
-
-    scene.MarkChoicePlayed(choice.Id);
-
-    if (choice.Outcome == ChoiceOutcome.Bad)
-    {
-      BadChoiceCount++;
-    }
-
-    if (BadChoiceCount >= MaxBadChoices)
-    {
-      Status = SessionStatus.Lost;
-      return new ChoiceApplicationResult(Status, choice.Outcome, RequiresNextScene: false);
-    }
-
-    var reachedEnd = CurrentSceneNumber >= TargetSceneCount;
-    if (reachedEnd)
-    {
-      Status = BadChoiceCount == 0 ? SessionStatus.Won : SessionStatus.Completed;
-      return new ChoiceApplicationResult(Status, choice.Outcome, RequiresNextScene: false);
-    }
-
-    return new ChoiceApplicationResult(SessionStatus.InProgress, choice.Outcome, RequiresNextScene: true);
   }
 
   /// <summary>Met à jour la mémoire narrative après une génération.</summary>
-  public void UpdateSummary(string summary) =>
+  public void UpdateSummary(string summary)
+  {
+    lock (_gate)
+    {
       RunningSummary = summary ?? string.Empty;
+    }
+  }
 
   /// <summary>Fixe l'issue finale de l'aventure terminée.</summary>
   public void SetOutcome(AdventureOutcome outcome)
   {
     ArgumentNullException.ThrowIfNull(outcome);
 
-    if (!IsFinished)
+    lock (_gate)
     {
-      throw new DomainException("Impossible de fixer une issue tant que l'aventure est en cours.");
-    }
+      if (!IsFinished)
+      {
+        throw new DomainException("Impossible de fixer une issue tant que l'aventure est en cours.");
+      }
 
-    if (outcome.Status != Status)
-    {
-      throw new DomainException("L'issue ne correspond pas au statut terminal de la session.");
-    }
+      if (outcome.Status != Status)
+      {
+        throw new DomainException("L'issue ne correspond pas au statut terminal de la session.");
+      }
 
-    Outcome = outcome;
+      Outcome = outcome;
+    }
   }
 
-  /// <summary>Illustre la scène courante (image générée a posteriori).</summary>
-  public void AttachImageToCurrentScene(string imageUrl)
+  /// <summary>
+  /// Illustre une scène identifiée par son numéro (pas nécessairement la scène courante : la
+  /// génération d'image est désormais asynchrone et peut se terminer après que l'utilisateur a déjà
+  /// fait progresser l'aventure vers une scène suivante). Ne fait rien si la scène n'existe plus (déjà
+  /// purgée) ou si l'URL est vide.
+  /// </summary>
+  public void AttachImageToScene(int sceneNumber, string imageUrl)
   {
     if (string.IsNullOrWhiteSpace(imageUrl))
     {
       return;
     }
 
-    CurrentScene?.AttachImage(imageUrl);
+    lock (_gate)
+    {
+      var scene = _scenes.FirstOrDefault(s => s.SceneNumber == sceneNumber);
+      scene?.AttachImage(imageUrl);
+    }
+  }
+
+  /// <summary>
+  /// Illustre l'issue déjà fixée par <see cref="SetOutcome"/> (image générée a posteriori en
+  /// arrière-plan). Ne fait rien si aucune issue n'est encore fixée ou si l'URL est vide.
+  /// </summary>
+  public void AttachImageToOutcome(string imageUrl)
+  {
+    if (string.IsNullOrWhiteSpace(imageUrl))
+    {
+      return;
+    }
+
+    lock (_gate)
+    {
+      if (Outcome is not null)
+      {
+        Outcome = Outcome.WithImage(imageUrl);
+      }
+    }
   }
 }

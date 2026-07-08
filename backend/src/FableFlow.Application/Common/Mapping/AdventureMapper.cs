@@ -17,7 +17,7 @@ public static class AdventureMapper
           scene.ImageUrl,
           [.. scene.Choices.Select(c => new ChoiceDto(c.Id, c.Label))]);
 
-  public static AdventureDto ToDto(this AdventureSession session)
+  public static AdventureDto ToDto(this AdventureSession session, bool imageGenerationEnabled)
   {
     // La scène courante n'est proposée que si l'aventure est en cours.
     var currentScene = session.IsFinished ? null : session.CurrentScene?.ToDto();
@@ -29,7 +29,8 @@ public static class AdventureMapper
         session.TargetSceneCount,
         currentScene,
         session.Outcome?.Message,
-        session.Outcome?.ImageUrl);
+        session.Outcome?.ImageUrl,
+        imageGenerationEnabled);
   }
 
   public static AdventureHistoryDto ToHistoryDto(this AdventureSession session) =>

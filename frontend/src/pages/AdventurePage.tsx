@@ -6,6 +6,7 @@ import Alert from '@mui/material/Alert';
 import { useAdventure } from '../hooks/useAdventure';
 import { useMakeChoice } from '../hooks/useMakeChoice';
 import { SceneView } from '../components/SceneView';
+import { SceneIllustration } from '../components/SceneIllustration';
 import { ChoiceButtons } from '../components/ChoiceButtons';
 import { ProgressIndicator } from '../components/ProgressIndicator';
 import { OutcomeScreen } from '../components/OutcomeScreen';
@@ -59,6 +60,12 @@ export function AdventurePage() {
               disabled={makeChoice.isPending}
               onChoose={(choiceId) => makeChoice.mutate(choiceId)}
             />
+
+            <SceneIllustration
+              imageUrl={adventure.currentScene.imageUrl}
+              alt={`Illustration de la scène ${adventure.currentScene.sceneNumber}`}
+              enabled={adventure.imageGenerationEnabled}
+            />
           </>
         )}
 
@@ -67,6 +74,7 @@ export function AdventurePage() {
             status={adventure.status}
             message={adventure.outcomeMessage}
             imageUrl={adventure.outcomeImageUrl}
+            imageGenerationEnabled={adventure.imageGenerationEnabled}
             onRestart={() => navigate('/')}
           />
         )}

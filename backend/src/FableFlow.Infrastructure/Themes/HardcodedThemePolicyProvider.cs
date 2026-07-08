@@ -10,7 +10,7 @@ namespace FableFlow.Infrastructure.Themes;
 /// </summary>
 public sealed class HardcodedThemePolicyProvider : IThemePolicyProvider
 {
-  private static readonly IReadOnlyList<ThemeDefinition> Themes =
+  private static readonly IReadOnlyList<ThemeDefinition> _themes =
   [
       new ThemeDefinition(
             id: "pokemon",
@@ -45,7 +45,18 @@ public sealed class HardcodedThemePolicyProvider : IThemePolicyProvider
                 "Aucun langage grossier ni thème adulte.",
                 "Ton positif, encourageant, orienté amitié et persévérance."
             ],
-            imageStyle: "illustration colorée style dessin animé, douce, adaptée aux enfants"),
+            imageStyle: "illustration colorée style dessin animé, douce, adaptée aux enfants",
+            recurringStoryBeats:
+            [
+                "Sacha tente de capturer un nouveau Pokémon sauvage rencontré en chemin.",
+                "Sacha fait une nouvelle rencontre marquante (dresseur, professeur Pokémon ou habitant de la région).",
+                "Un combat Pokémon a lieu : contre un dresseur croisé en chemin, un combat d'entraînement, ou un " +
+                    "combat d'Arène face à un champion.",
+                "Sacha progresse vers l'obtention d'un badge d'Arène ou vers la Ligue Pokémon.",
+                "La Team Rocket (Jessie, James et Miaouss) apparaît et tente un plan pour voler des Pokémon : " +
+                    "fais-la réapparaître régulièrement au fil de l'aventure (grossièrement une scène sur deux " +
+                    "ou trois pour une aventure longue), toujours déjouée sans violence, souvent avec humour."
+            ]),
 
         new ThemeDefinition(
             id: "spidey",
@@ -71,7 +82,19 @@ public sealed class HardcodedThemePolicyProvider : IThemePolicyProvider
                 "Aucun langage grossier ni thème adulte.",
                 "Ton héroïque, rassurant, orienté entraide et courage."
             ],
-            imageStyle: "illustration style bande dessinée lumineuse, dynamique, adaptée aux enfants"),
+            imageStyle: "illustration style bande dessinée lumineuse, dynamique, adaptée aux enfants",
+            recurringStoryBeats:
+            [
+                "Un méfait ou un plan d'un super-vilain récurrent (Electro, le Bouffon Vert, Docteur Octopus, " +
+                    "Rhino, l'Homme de Sable ou Zola) survient dans le quartier : fais-en réapparaître un " +
+                    "régulièrement au fil de l'aventure (grossièrement une scène sur deux ou trois pour une " +
+                    "aventure longue), toujours déjoué par la ruse ou l'entraide plutôt que par la force.",
+                "L'équipe fait la rencontre d'un nouvel habitant du quartier à rassurer ou à aider.",
+                "Un moment d'action met en valeur les toiles, l'agilité ou le pouvoir spécial de chacun des " +
+                    "héros (Spidey, Ghost-Spider ou Spin).",
+                "Un moment de travail d'équipe entre Spidey, Ghost-Spider et Spin fait la différence face à " +
+                    "la difficulté du moment."
+            ]),
 
         new ThemeDefinition(
             id: "dinosaur",
@@ -89,7 +112,15 @@ public sealed class HardcodedThemePolicyProvider : IThemePolicyProvider
                 "Aucun langage grossier ni thème adulte.",
                 "Ton émerveillé, curieux, orienté découverte de la nature et entraide."
             ],
-            imageStyle: "illustration colorée style dessin animé, chaleureuse, adaptée aux enfants"),
+            imageStyle: "illustration colorée style dessin animé, chaleureuse, adaptée aux enfants",
+            recurringStoryBeats:
+            [
+                "Découverte d'une nouvelle espèce de dinosaure ou d'un nouveau recoin de la vallée préservée.",
+                "Rencontre avec un dinosaure qui a besoin d'aide, de réconfort ou de compagnie.",
+                "Une petite énigme naturelle à résoudre (météo à anticiper, chemin à retrouver, nourriture, " +
+                    "abri à construire).",
+                "Un moment d'amitié ou de jeu avec les dinosaures déjà rencontrés plus tôt dans l'aventure."
+            ]),
 
         new ThemeDefinition(
             id: "vet",
@@ -107,16 +138,23 @@ public sealed class HardcodedThemePolicyProvider : IThemePolicyProvider
                 "Aucun langage grossier ni thème adulte.",
                 "Ton bienveillant, rassurant, orienté soin, patience et respect des animaux."
             ],
-            imageStyle: "illustration colorée style dessin animé, douce et chaleureuse, adaptée aux enfants")
+            imageStyle: "illustration colorée style dessin animé, douce et chaleureuse, adaptée aux enfants",
+            recurringStoryBeats:
+            [
+                "Arrivée d'un nouvel animal à accueillir et à rassurer, à la clinique ou sur le terrain.",
+                "Un petit souci de santé bénin à observer puis à soigner avec douceur et patience.",
+                "Rencontre avec le propriétaire de l'animal ou un habitant du quartier.",
+                "Apprentissage d'un nouveau geste ou d'une nouvelle astuce de soin vétérinaire simple."
+            ])
   ];
 
 
   public Task<IReadOnlyList<ThemeDefinition>> GetThemesAsync(CancellationToken cancellationToken) =>
-      Task.FromResult(Themes);
+      Task.FromResult(_themes);
 
   public Task<ThemeDefinition?> FindThemeAsync(string themeId, CancellationToken cancellationToken)
   {
-    var theme = Themes.FirstOrDefault(t => string.Equals(t.Id, themeId, StringComparison.OrdinalIgnoreCase));
+    var theme = _themes.FirstOrDefault(t => string.Equals(t.Id, themeId, StringComparison.OrdinalIgnoreCase));
     return Task.FromResult(theme);
   }
 }

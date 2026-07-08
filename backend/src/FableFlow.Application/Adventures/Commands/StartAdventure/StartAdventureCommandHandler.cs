@@ -16,19 +16,22 @@ public sealed class StartAdventureCommandHandler
   private readonly IPromptBuilder _promptBuilder;
   private readonly IStoryGenerationService _storyGeneration;
   private readonly IImageGenerationService _imageGeneration;
+  private readonly ISceneImageJobScheduler _imageJobScheduler;
 
   public StartAdventureCommandHandler(
       IThemePolicyProvider themeProvider,
       IAdventureRepository repository,
       IPromptBuilder promptBuilder,
       IStoryGenerationService storyGeneration,
-      IImageGenerationService imageGeneration)
+      IImageGenerationService imageGeneration,
+      ISceneImageJobScheduler imageJobScheduler)
   {
     _themeProvider = themeProvider;
     _repository = repository;
     _promptBuilder = promptBuilder;
     _storyGeneration = storyGeneration;
     _imageGeneration = imageGeneration;
+    _imageJobScheduler = imageJobScheduler;
   }
 
   public async Task<AdventureDto> Handle(
@@ -52,29 +55,13 @@ public sealed class StartAdventureCommandHandler
     session.AttachScene(scene);
     session.UpdateSummary(generated.UpdatedSummary);
 
-    await TryAttachImageAsync(session, generationRequest, generated.ImagePrompt, cancellationToken);
-
     await _repository.SaveAsync(session, cancellationToken);
 
-    return session.ToDto();
-  }
+    // Le texte et les choix sont déjà prêts à être retournés : l'illustration, nettement plus lente
+    // à générer, est planifiée en arrière-plan et rattrapée par le client via un polling de
+    // GET /api/adventures/{id} (voir ISceneImageJobScheduler).
+    _imageJobScheduler.ScheduleForScene(session.Id, scene.SceneNumber, theme, generated.ImagePrompt);
 
-  private async Task TryAttachImageAsync(
-      AdventureSession session,
-      SceneGenerationRequest generationRequest,
-      string genericSceneDescription,
-      CancellationToken cancellationToken)
-  {
-    if (!_imageGeneration.IsEnabled)
-    {
-      return;
-    }
-
-    var imagePrompt = _promptBuilder.BuildImagePrompt(generationRequest, genericSceneDescription);
-    var imageUrl = await _imageGeneration.GenerateImageAsync(imagePrompt, cancellationToken);
-    if (imageUrl is not null)
-    {
-      session.AttachImageToCurrentScene(imageUrl);
-    }
+    return session.ToDto(_imageGeneration.IsEnabled);
   }
 }

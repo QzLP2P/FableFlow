@@ -18,6 +18,9 @@ public sealed class PromptBuilder : IPromptBuilder
     var userPrompt = PromptTemplateRegistry.SceneUserTemplate
         .Replace("{{theme_name}}", request.Theme.DisplayName)
         .Replace("{{narrative_universe}}", request.Theme.NarrativeUniverse)
+        .Replace("{{recurring_story_beats}}", FormatBulletList(
+            request.Theme.RecurringStoryBeats,
+            "(aucun élément récurrent spécifique : improvise librement dans le cadre du thème.)"))
         .Replace("{{audience}}", request.Theme.Audience.ToString())
         .Replace("{{vocabulary_level}}", request.Theme.VocabularyLevel.ToString())
         .Replace("{{safety_constraints}}", FormatBulletList(request.Theme.SafetyConstraints))
@@ -36,7 +39,7 @@ public sealed class PromptBuilder : IPromptBuilder
             ? "(Aucun, il s'agit de la première scène.)"
             : $"L'utilisateur a choisi : « {request.SelectedChoice.Label} ».")
         .Replace("{{victory_defeat_conditions}}", BuildVictoryDefeatConditions(request))
-        .Replace("{{expected_structure}}", BuildExpectedStructure(request.Kind));
+        .Replace("{{expected_structure}}", BuildExpectedStructure(request));
 
     return new StoryPrompt(
         PromptTemplateRegistry.SceneSystemPrompt,
@@ -46,7 +49,7 @@ public sealed class PromptBuilder : IPromptBuilder
         request.Session.CurrentSceneNumber + 1);
   }
 
-  public StoryImagePrompt BuildImagePrompt(SceneGenerationRequest request, string genericSceneDescription)
+  public StoryImagePrompt BuildImagePrompt(ThemeDefinition theme, string genericSceneDescription)
   {
     // "genericSceneDescription" provient du champ "imagePrompt" généré par le LLM (voir
     // PromptTemplateRegistry.SceneSystemPrompt) : une description purement visuelle de la scène,
@@ -55,10 +58,10 @@ public sealed class PromptBuilder : IPromptBuilder
     var prompt =
         $"Illustration pour une histoire interactive. " +
         $"Scène : {Truncate(genericSceneDescription, 500)} " +
-        $"Contraintes : {string.Join(" ", request.Theme.SafetyConstraints)} " +
+        $"Contraintes : {string.Join(" ", theme.SafetyConstraints)} " +
         "Aucun texte ni typographie dans l'image.";
 
-    return new StoryImagePrompt(prompt, request.Theme.ImageStyle);
+    return new StoryImagePrompt(prompt, theme.ImageStyle);
   }
 
   public StoryPremisePrompt BuildPremisePrompt(ThemeDefinition theme, int count)
@@ -66,6 +69,9 @@ public sealed class PromptBuilder : IPromptBuilder
     var userPrompt = PromptTemplateRegistry.PremiseUserTemplate
         .Replace("{{theme_name}}", theme.DisplayName)
         .Replace("{{narrative_universe}}", theme.NarrativeUniverse)
+        .Replace("{{recurring_story_beats}}", FormatBulletList(
+            theme.RecurringStoryBeats,
+            "(aucun élément récurrent spécifique : improvise librement dans le cadre du thème.)"))
         .Replace("{{audience}}", theme.Audience.ToString())
         .Replace("{{vocabulary_level}}", theme.VocabularyLevel.ToString())
         .Replace("{{safety_constraints}}", FormatBulletList(theme.SafetyConstraints))
@@ -98,24 +104,55 @@ public sealed class PromptBuilder : IPromptBuilder
     };
   }
 
-  private static string BuildExpectedStructure(SceneKind kind) => kind switch
+  /// <summary>
+  /// Décrit la structure attendue de la prochaine scène. Pour une continuation, la position relative
+  /// dans l'arc narratif (scène courante / nombre total de scènes, entre <see cref="AdventureSession.MinSceneCount"/>
+  /// et <see cref="AdventureSession.MaxSceneCount"/>) détermine le rythme à adopter, afin qu'une
+  /// aventure courte aille à l'essentiel et qu'une aventure longue prenne le temps d'installer
+  /// plusieurs péripéties avant le dénouement.
+  /// </summary>
+  private static string BuildExpectedStructure(SceneGenerationRequest request) => request.Kind switch
   {
     SceneKind.Initial =>
-        "Pose le décor et le personnage principal, introduis un premier enjeu clair, " +
-        "puis propose 2 à 3 choix d'action distincts.",
+        $"Pose le décor et le personnage principal, introduis un premier enjeu clair adapté à une " +
+        $"aventure de {request.Session.TargetSceneCount} scène(s) au total, puis termine par 2 à 3 " +
+        "choix d'action distincts.",
     SceneKind.Continuation =>
-        "Fais suite directement au choix précédent, fais progresser l'enjeu principal, " +
-        "puis propose 2 à 3 nouveaux choix distincts.",
+        BuildContinuationStructure(request.Session.CurrentSceneNumber + 1, request.Session.TargetSceneCount),
     SceneKind.Ending =>
-        "Conclus l'histoire de façon cohérente avec tout ce qui précède. Aucun choix (tableau vide).",
-    _ => throw new ArgumentOutOfRangeException(nameof(kind))
+        "Conclus l'histoire de façon cohérente avec tout ce qui précède, en dénouant l'enjeu " +
+        "principal installé depuis le début de l'aventure. Aucun choix (tableau vide).",
+    _ => throw new ArgumentOutOfRangeException(nameof(request))
   };
 
-  private static string FormatBulletList(IReadOnlyList<string> items)
+  private static string BuildContinuationStructure(int sceneNumber, int targetSceneCount)
+  {
+    var progressRatio = (double)sceneNumber / targetSceneCount;
+    var remainingScenes = targetSceneCount - sceneNumber;
+
+    var stageGuidance = progressRatio switch
+    {
+      <= 0.34 =>
+          "Phase de développement initial : fais progresser un premier enjeu ou une première " +
+          "péripétie issue de l'univers, en gardant de la place pour la suite de l'aventure.",
+      <= 0.7 =>
+          "Cœur de l'aventure : introduis une nouvelle péripétie ou un enjeu secondaire, fais évoluer " +
+          "les relations avec les personnages déjà rencontrés, et augmente progressivement la difficulté.",
+      _ =>
+          $"Approche du dénouement (encore {remainingScenes} scène(s) avant la fin) : resserre " +
+          "l'intrigue autour de l'enjeu principal et prépare une montée en tension vers la conclusion."
+    };
+
+    return $"Fais suite directement au choix précédent. {stageGuidance} Termine par 2 à 3 nouveaux choix distincts.";
+  }
+
+  private static string FormatBulletList(
+      IReadOnlyList<string> items,
+      string emptyMessage = "(aucune contrainte spécifique)")
   {
     if (items.Count == 0)
     {
-      return "(aucune contrainte spécifique)";
+      return emptyMessage;
     }
 
     var builder = new StringBuilder();

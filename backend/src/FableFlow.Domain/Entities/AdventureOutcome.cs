@@ -26,4 +26,11 @@ public sealed class AdventureOutcome
   public static AdventureOutcome Lost(string message, string? imageUrl = null) => new(SessionStatus.Lost, message, imageUrl);
 
   public static AdventureOutcome Completed(string message, string? imageUrl = null) => new(SessionStatus.Completed, message, imageUrl);
+
+  /// <summary>
+  /// Retourne une copie de l'issue avec l'illustration attachée. Utilisé lorsque l'image, plus
+  /// longue à générer que le texte, est attachée après coup une fois prête (voir
+  /// <see cref="AdventureSession.AttachImageToOutcome"/>).
+  /// </summary>
+  public AdventureOutcome WithImage(string imageUrl) => new(Status, Message, imageUrl);
 }

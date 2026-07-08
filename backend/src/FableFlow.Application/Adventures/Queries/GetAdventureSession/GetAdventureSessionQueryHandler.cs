@@ -10,9 +10,13 @@ public sealed class GetAdventureSessionQueryHandler
     : IRequestHandler<GetAdventureSessionQuery, AdventureDto>
 {
   private readonly IAdventureRepository _repository;
+  private readonly IImageGenerationService _imageGeneration;
 
-  public GetAdventureSessionQueryHandler(IAdventureRepository repository) =>
-      _repository = repository;
+  public GetAdventureSessionQueryHandler(IAdventureRepository repository, IImageGenerationService imageGeneration)
+  {
+    _repository = repository;
+    _imageGeneration = imageGeneration;
+  }
 
   public async Task<AdventureDto> Handle(
       GetAdventureSessionQuery request,
@@ -21,6 +25,6 @@ public sealed class GetAdventureSessionQueryHandler
     var session = await _repository.GetAsync(request.AdventureId, cancellationToken)
         ?? throw new NotFoundException("Aventure", request.AdventureId);
 
-    return session.ToDto();
+    return session.ToDto(_imageGeneration.IsEnabled);
   }
 }
