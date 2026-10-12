@@ -17,8 +17,29 @@ public sealed class AzureOpenAIOptions
   /// <summary>Utiliser Managed Identity (via DefaultAzureCredential) plutôt qu'une clé API.</summary>
   public bool UseManagedIdentity { get; set; } = true;
 
-  /// <summary>Nom du déploiement du modèle orchestrateur (ex. gpt-5.4-mini, gpt-4o, gpt-4.1).</summary>
+  /// <summary>Nom du déploiement du modèle qui écrit les chapitres (ex. gpt-5.4-mini, gpt-5.5, gpt-4.1).</summary>
   public string ChatDeployment { get; set; } = "gpt-5.4-mini";
+
+  /// <summary>
+  /// Effort de raisonnement envoyé avec chaque requête de chapitre (ex. "none", "low", "medium"),
+  /// selon les valeurs acceptées par le modèle déployé : "minimal" n'existe que pour les premiers
+  /// gpt-5 (gpt-5, gpt-5-mini, gpt-5-nano) et est refusé à partir de gpt-5.1, où "none" le remplace.
+  /// Laisser vide pour ne pas envoyer le champ : obligatoire pour un modèle sans raisonnement
+  /// (ex. gpt-4.1, gpt-4o), qui le refuse.
+  /// </summary>
+  public string? ReasoningEffort { get; set; } = "none";
+
+  /// <summary>
+  /// Déploiement facultatif dédié aux idées de départ (tâche courte, un modèle plus rapide suffit).
+  /// Vide : <see cref="ChatDeployment"/> est utilisé.
+  /// </summary>
+  public string? PremiseDeployment { get; set; }
+
+  /// <summary>
+  /// Effort de raisonnement des idées de départ. <c>null</c> : reprend <see cref="ReasoningEffort"/> ;
+  /// chaîne vide : champ non envoyé.
+  /// </summary>
+  public string? PremiseReasoningEffort { get; set; }
 
   /// <summary>
   /// Nom du déploiement de génération d'image de la série gpt-image (ex. gpt-image-1).

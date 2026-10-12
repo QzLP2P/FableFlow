@@ -22,6 +22,9 @@ param azureOpenAiEndpoint string
 @description('Nom du déploiement du modèle de chat.')
 param chatDeploymentName string
 
+@description('Nom du déploiement du modèle des idées de départ.')
+param premiseDeploymentName string
+
 @description('Endpoint Azure AI Foundry pour les modèles partenaires (FLUX).')
 param fluxEndpoint string
 
@@ -83,6 +86,7 @@ resource site 'Microsoft.Web/sites@2023-12-01' = {
         { name: 'AzureOpenAI__Endpoint', value: azureOpenAiEndpoint }
         { name: 'AzureOpenAI__UseManagedIdentity', value: 'true' }
         { name: 'AzureOpenAI__ChatDeployment', value: chatDeploymentName }
+        { name: 'AzureOpenAI__PremiseDeployment', value: premiseDeploymentName }
         { name: 'Flux__Endpoint', value: fluxEndpoint }
         { name: 'Flux__UseManagedIdentity', value: 'true' }
         { name: 'Flux__DeploymentName', value: fluxDeploymentName }

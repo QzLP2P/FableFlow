@@ -5,7 +5,7 @@ using MediatR;
 
 namespace FableFlow.Api.Endpoints;
 
-/// <summary>Endpoints REST relatifs aux thèmes disponibles.</summary>
+/// <summary>Endpoints REST relatifs aux univers disponibles.</summary>
 public static class ThemeEndpoints
 {
   public static IEndpointRouteBuilder MapThemeEndpoints(this IEndpointRouteBuilder app)
@@ -13,16 +13,19 @@ public static class ThemeEndpoints
     app.MapGet("/api/themes", GetThemesAsync)
         .WithName("GetThemes")
         .WithTags("Themes")
-        .WithSummary("Retourne les thèmes disponibles pour démarrer une aventure.")
+        .WithSummary("Retourne les univers disponibles pour créer une histoire.")
         .Produces<IReadOnlyList<ThemeDto>>();
 
-    app.MapGet("/api/themes/{themeId}/story-premises", GetStoryPremisesAsync)
+    // POST car la génération dépend du héros (données personnelles à ne pas exposer dans l'URL ni
+    // dans les journaux d'accès) et n'est ni sûre ni idempotente (chaque appel propose d'autres idées).
+    app.MapPost("/api/themes/{themeId}/story-premises", GetStoryPremisesAsync)
         .WithName("GetStoryPremises")
         .WithTags("Themes")
-        .WithSummary("Génère des propositions d'axe narratif pour un thème (rejouable via 'Refresh').")
+        .WithSummary("Propose des idées de départ personnalisées pour un univers et un héros.")
         .Produces<IReadOnlyList<StoryPremiseDto>>()
+        .ProducesValidationProblem()
         .ProducesProblem(StatusCodes.Status404NotFound)
-        .ProducesValidationProblem();
+        .ProducesProblem(StatusCodes.Status502BadGateway);
 
     return app;
   }
@@ -37,11 +40,12 @@ public static class ThemeEndpoints
 
   private static async Task<IResult> GetStoryPremisesAsync(
       string themeId,
+      StoryPremisesRequest request,
       ISender sender,
-      CancellationToken cancellationToken,
-      int count = 3)
+      CancellationToken cancellationToken)
   {
-    var result = await sender.Send(new GetStoryPremisesQuery(themeId, count), cancellationToken);
+    var query = new GetStoryPremisesQuery(themeId, request.Length, request.ReaderMode, request.Hero, request.Count);
+    var result = await sender.Send(query, cancellationToken);
     return Results.Ok(result);
   }
 }

@@ -1,5 +1,15 @@
 import { createTheme, type PaletteMode, type Theme } from '@mui/material/styles';
 
+declare module '@mui/material/styles' {
+  interface Palette {
+    /** Deux couleurs alternées des aides à la lecture (contraste ≥ 4.5 sur le fond). */
+    syllable: { a: string; b: string };
+  }
+  interface PaletteOptions {
+    syllable?: { a: string; b: string };
+  }
+}
+
 /**
  * Thème MUI mobile-first : lecture confortable, gros boutons de choix,
  * typographie responsive et palette rassurante adaptée à un public familial.
@@ -26,6 +36,7 @@ export function getAppTheme(mode: PaletteMode): Theme {
         primary: isLight ? '#241E33' : '#E7E3F0',
         secondary: isLight ? '#5A5470' : '#B9B3C9',
       },
+      syllable: isLight ? { a: '#1C54B2', b: '#B3261E' } : { a: '#8EC5FF', b: '#FF9E8F' },
     },
     shape: {
       borderRadius: 16,
@@ -49,6 +60,12 @@ export function getAppTheme(mode: PaletteMode): Theme {
       MuiContainer: {
         defaultProps: {
           maxWidth: 'sm',
+        },
+      },
+      MuiDialog: {
+        styleOverrides: {
+          // Pas de voile d'élévation en mode sombre : la surface reste background.paper, comme les cartes.
+          paper: { backgroundImage: 'none' },
         },
       },
     },

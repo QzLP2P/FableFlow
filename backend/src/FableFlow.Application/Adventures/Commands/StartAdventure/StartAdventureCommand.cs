@@ -1,14 +1,18 @@
 using FableFlow.Application.Adventures.Dtos;
+using FableFlow.Application.Common.Heroes;
+using FableFlow.Domain.Enums;
 using MediatR;
 
 namespace FableFlow.Application.Adventures.Commands.StartAdventure;
 
-/// <summary>Démarre une nouvelle aventure et génère la scène initiale.</summary>
-/// <param name="ThemeId">Identifiant du thème choisi.</param>
-/// <param name="SceneCount">Nombre de scènes cible.</param>
-/// <param name="NarrativePremise">
-/// Axe narratif choisi par l'utilisateur parmi les propositions de <c>GetStoryPremisesQuery</c>
-/// (optionnel). Ancre toute la génération narrative de l'aventure sur cette direction.
-/// </param>
-public sealed record StartAdventureCommand(string ThemeId, int SceneCount, string? NarrativePremise = null)
-    : IRequest<AdventureDto>;
+/// <summary>
+/// Démarre une histoire personnalisée à partir d'un instantané du héros, du mode de lecture, de la
+/// longueur et de l'idée de départ, puis écrit le premier chapitre.
+/// </summary>
+public sealed record StartAdventureCommand(
+    string ThemeId,
+    StoryLength Length,
+    ReaderMode ReaderMode,
+    HeroInput Hero,
+    string Premise,
+    string? PremiseTitle = null) : IRequest<AdventureDto>;

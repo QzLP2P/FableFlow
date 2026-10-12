@@ -1,153 +1,103 @@
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import AutoStoriesRoundedIcon from "@mui/icons-material/AutoStoriesRounded";
 import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import CircularProgress from "@mui/material/CircularProgress";
 import Container from "@mui/material/Container";
+import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { PremiseSelector } from "../components/PremiseSelector";
-import { SceneCountSelector } from "../components/SceneCountSelector";
-import { ThemeCard } from "../components/ThemeCard";
-import { useStartAdventure } from "../hooks/useStartAdventure";
-import { useStoryPremises } from "../hooks/useStoryPremises";
-import { useThemes } from "../hooks/useThemes";
+import { Link as RouterLink } from "react-router-dom";
+import { BookList } from "../components/library/BookList";
+import { describeHero } from "../domain/hero";
+import { useLibrary, useProfiles } from "../hooks/useLocalData";
+import { describeStorageFailure } from "../storage/localData";
 
-const MIN_SCENES = 3;
-const MAX_SCENES = 12;
-const DEFAULT_SCENES = 6;
+const RECENT_BOOKS = 3;
 
-/** Page d'accueil : choix du thème, de l'axe narratif et de la durée de l'aventure. */
+/** Accès direct aux profils et aux histoires enregistrées sur cet appareil. */
 export function HomePage() {
-  const navigate = useNavigate();
-  const { data: themes, isLoading, isError } = useThemes();
-  const startAdventure = useStartAdventure();
-
-  const [selectedThemeId, setSelectedThemeId] = useState<string | null>(null);
-  const [selectedPremiseIndex, setSelectedPremiseIndex] = useState<
-    number | null
-  >(null);
-  const [sceneCount, setSceneCount] = useState(DEFAULT_SCENES);
-
-  const {
-    data: premises,
-    isLoading: isPremisesLoading,
-    isFetching: isPremisesFetching,
-    isError: isPremisesError,
-    refetch: refetchPremises,
-  } = useStoryPremises(selectedThemeId);
-
-  const selectedPremise =
-    selectedPremiseIndex !== null ? premises?.[selectedPremiseIndex] : null;
-
-  const handleSelectTheme = (themeId: string) => {
-    setSelectedThemeId(themeId);
-    setSelectedPremiseIndex(null);
-  };
-
-  const handleStart = () => {
-    if (!selectedThemeId || !selectedPremise) {
-      return;
-    }
-
-    startAdventure.mutate(
-      {
-        themeId: selectedThemeId,
-        sceneCount,
-        narrativePremise: `${selectedPremise.title} — ${selectedPremise.hook}`,
-      },
-      {
-        onSuccess: (adventure) =>
-          navigate(`/adventures/${adventure.adventureId}`),
-      },
-    );
-  };
+  const profiles = useProfiles();
+  const library = useLibrary();
+  const savedProfiles = profiles.data?.profiles ?? [];
+  const books = library.data?.books ?? [];
+  const isReturning = savedProfiles.length > 0 || books.length > 0;
+  // Évite d'afficher l'accueil « première visite » le temps de lire les données locales.
+  const isSettled = !profiles.isPending && !library.isPending;
 
   return (
-    <Container sx={{ py: { xs: 3, sm: 6 } }}>
-      <Stack spacing={3}>
-        <Stack spacing={1}>
-          <Typography variant="h1" component="h1">
-            Prêt pour l'aventure ?
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Choisis un thème et une durée pour démarrer ton aventure
-            interactive.
-          </Typography>
-        </Stack>
-
-        {isLoading && (
-          <Stack alignItems="center" sx={{ py: 4 }}>
-            <CircularProgress />
-          </Stack>
-        )}
-
-        {isError && (
-          <Alert severity="error">
-            Impossible de charger les thèmes. Vérifie que l'API est démarrée.
-          </Alert>
-        )}
-
-        {themes && (
-          <Stack spacing={2}>
-            <Typography variant="h2" component="h2">
-              Thème
+    <Container maxWidth="md" sx={{ py: { xs: 3, sm: 6 } }}>
+      <Stack spacing={5}>
+        {!isSettled ? (
+          <Box aria-hidden="true">
+            <Skeleton variant="text" sx={{ fontSize: { xs: "1.85rem", sm: "2.5rem" }, maxWidth: "20ch", mb: 1.5 }} />
+            <Skeleton variant="text" sx={{ fontSize: "1.1rem", maxWidth: "50ch", mb: 3 }} />
+            <Skeleton variant="rounded" width={200} height={48} sx={{ borderRadius: "16px" }} />
+          </Box>
+        ) : (
+          <Box component="section" aria-labelledby="home-heading">
+            <Typography id="home-heading" variant="h1" sx={{ fontSize: { xs: "1.85rem", sm: "2.5rem" }, mb: 1.5, maxWidth: "20ch" }}>
+              {isReturning ? "Une nouvelle histoire ?" : "Une histoire dont votre enfant est le héros"}
             </Typography>
-            <Stack spacing={1.5}>
-              {themes.map((theme) => (
-                <ThemeCard
-                  key={theme.id}
-                  theme={theme}
-                  selected={theme.id === selectedThemeId}
-                  onSelect={handleSelectTheme}
-                />
-              ))}
-            </Stack>
-          </Stack>
+            <Typography color="text.secondary" sx={{ mb: 3, maxWidth: "60ch", fontSize: "1.1rem" }}>
+              {isReturning
+                ? "Choisissez le héros, puis l'univers : le premier chapitre arrive en quelques secondes."
+                : "Son prénom, son âge, un univers : FableFlow écrit une histoire en chapitres à lire ensemble à voix haute, ou qu'il ou elle lit seul, avec quelques choix en chemin."}
+            </Typography>
+
+            {savedProfiles.length > 0 ? (
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5 }}>
+                {savedProfiles.slice(0, 4).map((profile) => (
+                  <Button
+                    key={profile.id}
+                    variant="contained"
+                    size="large"
+                    component={RouterLink}
+                    to={`/create?profile=${encodeURIComponent(profile.id)}`}
+                    startIcon={<AutoStoriesRoundedIcon />}
+                  >
+                    Pour {describeHero(profile.name, profile.age)}
+                  </Button>
+                ))}
+                <Button variant="outlined" size="large" component={RouterLink} to="/create" startIcon={<AddRoundedIcon />}>
+                  Autre héros
+                </Button>
+              </Box>
+            ) : (
+              <Button variant="contained" size="large" component={RouterLink} to="/create" startIcon={<AutoStoriesRoundedIcon />}>
+                Créer une histoire
+              </Button>
+            )}
+
+            {savedProfiles.length > 0 && (
+              <Button component={RouterLink} to="/family" sx={{ mt: 1.5, ml: -1 }}>
+                Gérer les profils
+              </Button>
+            )}
+          </Box>
         )}
 
-        {selectedThemeId && (
-          <PremiseSelector
-            premises={premises}
-            isLoading={isPremisesLoading}
-            isFetching={isPremisesFetching}
-            isError={isPremisesError}
-            selectedIndex={selectedPremiseIndex}
-            onSelect={setSelectedPremiseIndex}
-            onRefresh={() => {
-              setSelectedPremiseIndex(null);
-              void refetchPremises();
-            }}
-          />
-        )}
+        {library.isPending && <Skeleton variant="rounded" height={112} sx={{ borderRadius: "16px" }} aria-hidden="true" />}
 
-        <SceneCountSelector
-          value={sceneCount}
-          min={MIN_SCENES}
-          max={MAX_SCENES}
-          onChange={setSceneCount}
-        />
-
-        {startAdventure.isError && (
-          <Alert severity="error">
-            Impossible de démarrer l'aventure. Réessaie dans un instant.
+        {library.isError && (
+          <Alert severity="warning">
+            Les histoires enregistrées ne peuvent pas être affichées. {describeStorageFailure(library.error)}
           </Alert>
         )}
 
-        <Button
-          variant="contained"
-          size="large"
-          fullWidth
-          disabled={
-            !selectedThemeId || !selectedPremise || startAdventure.isPending
-          }
-          onClick={handleStart}
-          sx={{ py: 1.5 }}
-        >
-          {startAdventure.isPending
-            ? "Préparation de l\u2019aventure…"
-            : "Commencer l\u2019aventure"}
-        </Button>
+        {books.length > 0 && (
+          <Box component="section" aria-labelledby="recent-heading">
+            <Box sx={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 2, mb: 2, flexWrap: "wrap" }}>
+              <Typography id="recent-heading" variant="h2" sx={{ fontSize: "1.35rem", fontWeight: 700 }}>
+                À relire
+              </Typography>
+              <Button component={RouterLink} to="/library" sx={{ mr: -1 }}>
+                Toute la bibliothèque ({books.length})
+              </Button>
+            </Box>
+            <BookList books={books.slice(0, RECENT_BOOKS)} headingLevel="h3" />
+          </Box>
+        )}
       </Stack>
     </Container>
   );

@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Azure.Identity;
 using Azure.Monitor.OpenTelemetry.AspNetCore;
 using FableFlow.Api.Endpoints;
@@ -28,6 +29,11 @@ if (!builder.Environment.IsDevelopment() && !string.IsNullOrWhiteSpace(keyVaultU
 // ---------- Application / Infrastructure ----------
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// Énumérations sérialisées par leur nom ("Short", "ChildReader"...) : contrat lisible et stable
+// côté frontend, indépendant de l'ordre de déclaration.
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 // ---------- CORS ----------
 builder.Services.AddOptions<CorsOptions>().Bind(builder.Configuration.GetSection(CorsOptions.SectionName));
@@ -62,7 +68,7 @@ builder.Services.AddSwaggerGen(options =>
   {
     Title = "FableFlow API",
     Version = "v1",
-    Description = "API de génération d'aventures interactives par LLM."
+    Description = "API de génération d'histoires personnalisées à lire par LLM."
   });
 });
 

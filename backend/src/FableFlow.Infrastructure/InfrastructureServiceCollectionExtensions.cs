@@ -37,7 +37,7 @@ public static class InfrastructureServiceCollectionExtensions
     services.AddSingleton<IPromptBuilder, PromptBuilder>();
     services.AddSingleton<IStoryGenerationService, AzureOpenAIStoryGenerationService>();
 
-    // File de travaux en arrière-plan (génération d'illustration différée, voir SceneImageJobScheduler
+    // File de travaux en arrière-plan (génération d'illustration différée, voir ChapterImageJobScheduler
     // côté Application) : un seul singleton concret partagé entre le port (écriture) et le hosted
     // service qui le consomme (lecture, réservée à l'assembly courant).
     services.AddSingleton<ChannelBackgroundJobQueue>();

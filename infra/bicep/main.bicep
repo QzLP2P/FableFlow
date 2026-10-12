@@ -74,9 +74,10 @@ module appService 'modules/appservice.bicep' = {
     userAssignedIdentityClientId: identity.outputs.clientId
     keyVaultUri: keyVault.outputs.vaultUri
     azureOpenAiEndpoint: foundry.outputs.openAiEndpoint
-    chatDeploymentName: 'gpt-5.4-mini'
+    chatDeploymentName: foundry.outputs.chatDeploymentName
+    premiseDeploymentName: foundry.outputs.premiseDeploymentName
     fluxEndpoint: foundry.outputs.foundryEndpoint
-    fluxDeploymentName: 'FLUX.2-pro'
+    fluxDeploymentName: foundry.outputs.imageDeploymentName
     fluxModelSlug: 'flux-2-pro'
     imageGenerationEnabled: true
     allowedOrigin: empty(corsAllowedOrigin) ? 'https://${staticWebApp.outputs.defaultHostName}' : corsAllowedOrigin

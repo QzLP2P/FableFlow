@@ -23,9 +23,9 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
   {
     var (statusCode, title, extensions) = Map(exception);
 
-    if (statusCode == StatusCodes.Status500InternalServerError)
+    if (statusCode >= StatusCodes.Status500InternalServerError)
     {
-      _logger.LogError(exception, "Erreur non gérée lors du traitement de la requête");
+      _logger.LogError(exception, "Erreur lors du traitement de la requête ({StatusCode})", statusCode);
     }
     else
     {
@@ -68,9 +68,27 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
               notFoundException.Message,
               []),
 
+        // Action périmée (double clic, autre onglet, chapitre déjà en cours d'écriture) : le client
+        // recharge l'histoire plutôt que d'afficher une erreur.
+        StoryConflictException conflictException => (
+              StatusCodes.Status409Conflict,
+              conflictException.Message,
+              []),
+
         DomainException domainException => (
               StatusCodes.Status400BadRequest,
               domainException.Message,
+              []),
+
+        // Message déjà neutre (aucun détail du fournisseur) : l'histoire reste dans son état précédent.
+        StoryGenerationException generationException => (
+              StatusCodes.Status502BadGateway,
+              generationException.Message,
+              []),
+
+        BadHttpRequestException => (
+              StatusCodes.Status400BadRequest,
+              "Requête invalide.",
               []),
 
         _ => (

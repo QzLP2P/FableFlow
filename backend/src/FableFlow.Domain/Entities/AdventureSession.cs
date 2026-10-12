@@ -1,269 +1,391 @@
 using System.Threading;
 using FableFlow.Domain.Enums;
 using FableFlow.Domain.Exceptions;
+using FableFlow.Domain.Policies;
 
 namespace FableFlow.Domain.Entities;
 
 /// <summary>
-/// Racine d'agrégat représentant une aventure en cours. Encapsule la logique
-/// narrative : progression des scènes, comptage des mauvais choix et transitions
-/// de statut (victoire / défaite / fin neutre).
+/// Racine d'agrégat d'une histoire personnalisée. Porte l'instantané immuable de la configuration
+/// (héros, mode de lecture, longueur, idée de départ) et la progression chapitre par chapitre selon
+/// un calendrier déterministe. L'histoire se termine toujours par sa conclusion narrative : il n'y a
+/// ni victoire ni défaite.
 /// </summary>
 public sealed class AdventureSession
 {
-  public const int DefaultMaxBadChoices = 3;
-  public const int MinSceneCount = 3;
-  public const int MaxSceneCount = 20;
+  public const int MaxPremiseLength = 600;
+  public const int MaxTitleLength = 120;
+  public const int MaxKeyFacts = 12;
 
-  // Protège les scènes et l'issue contre les accès concurrents : la génération d'image se termine
-  // désormais en arrière-plan (voir ISceneImageJobScheduler côté Application) et peut donc écrire sur
-  // cette session au même moment qu'une requête HTTP en cours (nouveau choix, polling de l'état).
+  // Protège l'état contre les accès concurrents : les illustrations sont attachées en arrière-plan
+  // pendant que des requêtes HTTP lisent l'histoire ou la font progresser.
   private readonly Lock _gate = new();
 
-  private readonly List<AdventureScene> _scenes = [];
+  private readonly List<AdventureChapter> _chapters = [];
+  private IReadOnlyList<string> _keyFacts = [];
+  private IReadOnlyList<string> _storyOutline = [];
+  private ChapterTransition? _pendingTransition;
 
-  private AdventureSession(Guid id, string themeId, int targetSceneCount, int maxBadChoices, string? narrativePremise)
+  private AdventureSession(
+      Guid id,
+      string themeId,
+      HeroProfile hero,
+      ReaderMode readerMode,
+      ChapterSchedule schedule,
+      string premise,
+      string? title)
   {
     Id = id;
     ThemeId = themeId;
-    TargetSceneCount = targetSceneCount;
-    MaxBadChoices = maxBadChoices;
-    NarrativePremise = narrativePremise;
+    Hero = hero;
+    ReaderMode = readerMode;
+    Schedule = schedule;
+    Premise = premise;
+    Title = title;
     Status = SessionStatus.InProgress;
     RunningSummary = string.Empty;
-    CurrentSceneNumber = 0;
   }
 
   public Guid Id { get; }
 
   public string ThemeId { get; }
 
-  public int TargetSceneCount { get; }
+  /// <summary>Instantané du héros pris au démarrage.</summary>
+  public HeroProfile Hero { get; }
 
-  public int MaxBadChoices { get; }
+  public ReaderMode ReaderMode { get; }
 
-  /// <summary>
-  /// Axe narratif principal choisi par l'utilisateur parmi les propositions générées
-  /// (voir <c>GetStoryPremisesQuery</c>). Sert d'ancrage pour toutes les scènes générées
-  /// tout au long de l'aventure. <c>null</c> si l'utilisateur n'a pas choisi d'axe (le LLM
-  /// improvise librement dans ce cas).
-  /// </summary>
-  public string? NarrativePremise { get; }
+  public ChapterSchedule Schedule { get; }
 
-  public int CurrentSceneNumber { get; private set; }
+  public StoryLength Length => Schedule.Length;
 
-  public int BadChoiceCount { get; private set; }
+  public int TotalChapters => Schedule.TotalChapters;
+
+  /// <summary>Idée de départ choisie (proposition générée ou idée personnelle).</summary>
+  public string Premise { get; }
+
+  /// <summary>Titre de l'histoire, issu de la proposition choisie ou fixé à l'ouverture.</summary>
+  public string? Title { get; private set; }
 
   public SessionStatus Status { get; private set; }
 
-  /// <summary>Résumé courant alimentant la mémoire narrative.</summary>
+  public bool IsCompleted => Status == SessionStatus.Completed;
+
+  /// <summary>Résumé cumulatif alimentant la mémoire narrative.</summary>
   public string RunningSummary { get; private set; }
 
+  /// <summary>Faits clés à ne pas contredire (personnages, objets, lieux).</summary>
+  public IReadOnlyList<string> KeyFacts
+  {
+    get { lock (_gate) { return _keyFacts; } }
+  }
+
   /// <summary>
-  /// Plan d'ensemble de l'aventure (quelques grandes étapes/actes, pas une par scène), généré une
-  /// fois avec la scène initiale et utilisé comme fil conducteur pour toutes les scènes suivantes
-  /// afin de garantir une progression cohérente sur toute la durée de l'aventure. Vide tant qu'il
-  /// n'a pas encore été fixé (ou si le LLM n'en a pas fourni). Usage interne à la génération
-  /// narrative uniquement : jamais exposé au client (pas de spoiler de l'histoire).
+  /// Plan d'ensemble fixé à l'ouverture, fil conducteur de la génération. Usage interne :
+  /// jamais exposé au client (pas de divulgation de l'intrigue).
   /// </summary>
-  public IReadOnlyList<string> StoryOutline { get; private set; } = [];
-
-  public AdventureOutcome? Outcome { get; private set; }
-
-  /// <summary>Instantané des scènes ; une copie est retournée à chaque accès pour rester sûre en cas d'écriture concurrente.</summary>
-  public IReadOnlyList<AdventureScene> Scenes
+  public IReadOnlyList<string> StoryOutline
   {
-    get { lock (_gate) { return [.. _scenes]; } }
+    get { lock (_gate) { return _storyOutline; } }
   }
 
-  public AdventureScene? CurrentScene
+  /// <summary>Copie des chapitres déjà écrits, dans l'ordre.</summary>
+  public IReadOnlyList<AdventureChapter> Chapters
   {
-    get { lock (_gate) { return GetCurrentSceneNoLock(); } }
+    get { lock (_gate) { return [.. _chapters]; } }
   }
 
-  public bool IsFinished => Status != SessionStatus.InProgress;
+  /// <summary>Chapitre le plus avancé (la « frontière » de lecture), ou <c>null</c> avant l'ouverture.</summary>
+  public AdventureChapter? CurrentChapter
+  {
+    get { lock (_gate) { return _chapters.Count == 0 ? null : _chapters[^1]; } }
+  }
 
-  private AdventureScene? GetCurrentSceneNoLock() => _scenes.Count == 0 ? null : _scenes[^1];
+  public int CurrentChapterNumber
+  {
+    get { lock (_gate) { return _chapters.Count; } }
+  }
 
-  /// <summary>Démarre une nouvelle aventure.</summary>
+  /// <summary>Indique qu'un chapitre est en cours de génération.</summary>
+  public bool IsGenerating
+  {
+    get { lock (_gate) { return _pendingTransition is not null; } }
+  }
+
   public static AdventureSession Start(
       Guid id,
       string themeId,
-      int targetSceneCount,
-      int maxBadChoices = DefaultMaxBadChoices,
-      string? narrativePremise = null)
+      HeroProfile hero,
+      ReaderMode readerMode,
+      StoryLength length,
+      string premise,
+      string? title = null)
   {
     if (string.IsNullOrWhiteSpace(themeId))
     {
-      throw new DomainException("Le thème est requis pour démarrer une aventure.");
+      throw new DomainException("L'univers est requis pour démarrer une histoire.");
     }
 
-    if (targetSceneCount is < MinSceneCount or > MaxSceneCount)
+    ArgumentNullException.ThrowIfNull(hero);
+
+    if (!Enum.IsDefined(readerMode))
     {
-      throw new DomainException(
-          $"Le nombre de scènes doit être compris entre {MinSceneCount} et {MaxSceneCount}.");
+      throw new DomainException($"Mode de lecture inconnu : {readerMode}.");
     }
 
-    if (maxBadChoices < 1)
+    if (string.IsNullOrWhiteSpace(premise))
     {
-      throw new DomainException("Le nombre maximum de mauvais choix doit être supérieur ou égal à 1.");
+      throw new DomainException("Une idée d'histoire est requise.");
     }
 
-    return new AdventureSession(id, themeId, targetSceneCount, maxBadChoices, narrativePremise);
+    var normalizedPremise = premise.Trim();
+    if (normalizedPremise.Length > MaxPremiseLength)
+    {
+      throw new DomainException($"L'idée d'histoire ne doit pas dépasser {MaxPremiseLength} caractères.");
+    }
+
+    var normalizedTitle = string.IsNullOrWhiteSpace(title) ? null : title.Trim();
+    if (normalizedTitle is not null && normalizedTitle.Length > MaxTitleLength)
+    {
+      throw new DomainException($"Le titre ne doit pas dépasser {MaxTitleLength} caractères.");
+    }
+
+    return new AdventureSession(
+        id,
+        themeId,
+        hero,
+        readerMode,
+        ChapterSchedule.For(length),
+        normalizedPremise,
+        normalizedTitle);
   }
 
-  /// <summary>Rattache la scène nouvellement générée et fait progresser le compteur de scène.</summary>
-  public void AttachScene(AdventureScene scene)
+  /// <summary>Réserve l'écriture du premier chapitre.</summary>
+  public ChapterTransition BeginOpening()
   {
-    ArgumentNullException.ThrowIfNull(scene);
+    lock (_gate)
+    {
+      EnsureNoPendingTransition();
+      if (_chapters.Count > 0)
+      {
+        throw new StoryConflictException("L'histoire a déjà commencé.");
+      }
+
+      return Reserve(fromChapterNumber: 0, selectedChoice: null);
+    }
+  }
+
+  /// <summary>Réserve le passage au chapitre suivant depuis un chapitre de récit.</summary>
+  /// <param name="fromChapterNumber">Chapitre courant vu par le lecteur (détecte les doublons).</param>
+  public ChapterTransition BeginAdvance(int fromChapterNumber)
+  {
+    lock (_gate)
+    {
+      var frontier = EnsureCanActOn(fromChapterNumber);
+      if (frontier.Kind == ChapterKind.Decision)
+      {
+        throw new StoryConflictException("Ce chapitre attend un choix avant de continuer.");
+      }
+
+      return Reserve(fromChapterNumber, selectedChoice: null);
+    }
+  }
+
+  /// <summary>Réserve la suite de l'histoire après un choix fait sur un moment de choix.</summary>
+  public ChapterTransition BeginChoice(int fromChapterNumber, string choiceId)
+  {
+    lock (_gate)
+    {
+      var frontier = EnsureCanActOn(fromChapterNumber);
+      if (frontier.Kind != ChapterKind.Decision)
+      {
+        throw new StoryConflictException("Ce chapitre ne propose pas de choix : passez au chapitre suivant.");
+      }
+
+      var choice = frontier.FindChoice(choiceId)
+          ?? throw new DomainException($"Le choix '{choiceId}' n'existe pas dans ce chapitre.");
+
+      return Reserve(fromChapterNumber, choice);
+    }
+  }
+
+  /// <summary>
+  /// Valide la transition réservée avec le chapitre généré : enregistre le choix éventuel, ajoute
+  /// le chapitre et termine l'histoire si c'est la conclusion. Le choix n'est enregistré qu'ici,
+  /// une fois le chapitre suivant disponible, pour qu'un échec de génération ne le consomme pas.
+  /// </summary>
+  public void CompleteTransition(ChapterTransition transition, AdventureChapter chapter)
+  {
+    ArgumentNullException.ThrowIfNull(transition);
+    ArgumentNullException.ThrowIfNull(chapter);
 
     lock (_gate)
     {
-      if (IsFinished)
+      if (_pendingTransition is null || _pendingTransition.Token != transition.Token)
       {
-        throw new DomainException("Impossible d'ajouter une scène à une aventure terminée.");
+        throw new StoryConflictException("Cette écriture de chapitre n'est plus attendue.");
       }
 
-      var expected = CurrentSceneNumber + 1;
-      if (scene.SceneNumber != expected)
+      if (chapter.Number != transition.NextChapterNumber || chapter.Kind != transition.NextKind)
       {
         throw new DomainException(
-            $"Scène incohérente : attendu {expected}, reçu {scene.SceneNumber}.");
+            $"Chapitre incohérent : attendu {transition.NextChapterNumber} ({transition.NextKind}), reçu {chapter.Number} ({chapter.Kind}).");
       }
 
-      _scenes.Add(scene);
-      CurrentSceneNumber = scene.SceneNumber;
+      if (transition.SelectedChoice is not null)
+      {
+        _chapters[^1].RecordChoice(transition.SelectedChoice.Id);
+      }
+
+      _chapters.Add(chapter);
+      if (chapter.Kind == ChapterKind.Ending)
+      {
+        Status = SessionStatus.Completed;
+      }
+
+      _pendingTransition = null;
     }
   }
 
-  /// <summary>
-  /// Applique le choix de l'utilisateur sur la scène courante et met à jour le statut.
-  /// Retourne un résultat indiquant si une scène suivante doit être générée.
-  /// </summary>
-  public ChoiceApplicationResult RecordChoice(string choiceId)
+  /// <summary>Libère une réservation après un échec : l'action pourra être retentée.</summary>
+  public void AbandonTransition(ChapterTransition transition)
+  {
+    ArgumentNullException.ThrowIfNull(transition);
+
+    lock (_gate)
+    {
+      if (_pendingTransition?.Token == transition.Token)
+      {
+        _pendingTransition = null;
+      }
+    }
+  }
+
+  /// <summary>Met à jour la mémoire narrative ; les valeurs vides conservent l'existant.</summary>
+  public void UpdateMemory(string? summary, IEnumerable<string>? keyFacts)
   {
     lock (_gate)
     {
-      if (IsFinished)
+      if (!string.IsNullOrWhiteSpace(summary))
       {
-        throw new DomainException("L'aventure est déjà terminée.");
+        RunningSummary = summary.Trim();
       }
 
-      var scene = GetCurrentSceneNoLock()
-          ?? throw new DomainException("Aucune scène courante à jouer.");
+      var facts = (keyFacts ?? [])
+          .Where(f => !string.IsNullOrWhiteSpace(f))
+          .Select(f => f.Trim())
+          .Distinct(StringComparer.OrdinalIgnoreCase)
+          .Take(MaxKeyFacts)
+          .ToArray();
 
-      var choice = scene.FindChoice(choiceId)
-          ?? throw new DomainException($"Le choix '{choiceId}' n'existe pas dans la scène courante.");
-
-      scene.MarkChoicePlayed(choice.Id);
-
-      if (choice.Outcome == ChoiceOutcome.Bad)
+      if (facts.Length > 0)
       {
-        BadChoiceCount++;
+        _keyFacts = facts;
       }
-
-      if (BadChoiceCount >= MaxBadChoices)
-      {
-        Status = SessionStatus.Lost;
-        return new ChoiceApplicationResult(Status, choice.Outcome, RequiresNextScene: false);
-      }
-
-      var reachedEnd = CurrentSceneNumber >= TargetSceneCount;
-      if (reachedEnd)
-      {
-        Status = BadChoiceCount == 0 ? SessionStatus.Won : SessionStatus.Completed;
-        return new ChoiceApplicationResult(Status, choice.Outcome, RequiresNextScene: false);
-      }
-
-      return new ChoiceApplicationResult(SessionStatus.InProgress, choice.Outcome, RequiresNextScene: true);
     }
   }
 
-  /// <summary>Met à jour la mémoire narrative après une génération.</summary>
-  public void UpdateSummary(string summary)
+  /// <summary>Fixe le plan d'ensemble à l'ouverture ; ignoré s'il est vide ou déjà fixé.</summary>
+  public void SetStoryOutline(IReadOnlyList<string>? outline)
   {
-    lock (_gate)
-    {
-      RunningSummary = summary ?? string.Empty;
-    }
-  }
-
-  /// <summary>
-  /// Fixe le plan d'ensemble généré avec la scène initiale (voir <see cref="StoryOutline"/>). Ne
-  /// fait rien si le plan fourni est vide (le LLM n'en a pas produit, ou appel pour une scène de
-  /// continuation/fin qui ne doit pas en générer).
-  /// </summary>
-  public void SetStoryOutline(IReadOnlyList<string> outline)
-  {
-    if (outline is null || outline.Count == 0)
+    var steps = (outline ?? []).Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s.Trim()).ToArray();
+    if (steps.Length == 0)
     {
       return;
     }
 
     lock (_gate)
     {
-      StoryOutline = [.. outline];
+      if (_storyOutline.Count == 0)
+      {
+        _storyOutline = steps;
+      }
     }
   }
 
-  /// <summary>Fixe l'issue finale de l'aventure terminée.</summary>
-  public void SetOutcome(AdventureOutcome outcome)
+  /// <summary>Fixe le titre s'il n'a pas été choisi au démarrage (idée personnelle).</summary>
+  public void SetTitleIfMissing(string? title)
   {
-    ArgumentNullException.ThrowIfNull(outcome);
+    if (string.IsNullOrWhiteSpace(title))
+    {
+      return;
+    }
 
     lock (_gate)
     {
-      if (!IsFinished)
+      if (Title is null)
       {
-        throw new DomainException("Impossible de fixer une issue tant que l'aventure est en cours.");
+        var trimmed = title.Trim();
+        Title = trimmed.Length > MaxTitleLength ? trimmed[..MaxTitleLength].TrimEnd() : trimmed;
       }
-
-      if (outcome.Status != Status)
-      {
-        throw new DomainException("L'issue ne correspond pas au statut terminal de la session.");
-      }
-
-      Outcome = outcome;
     }
   }
 
-  /// <summary>
-  /// Illustre une scène identifiée par son numéro (pas nécessairement la scène courante : la
-  /// génération d'image est désormais asynchrone et peut se terminer après que l'utilisateur a déjà
-  /// fait progresser l'aventure vers une scène suivante). Ne fait rien si la scène n'existe plus (déjà
-  /// purgée) ou si l'URL est vide.
-  /// </summary>
-  public void AttachImageToScene(int sceneNumber, string imageUrl)
+  public void MarkIllustrationPending(int chapterNumber) =>
+      WithChapter(chapterNumber, c => c.MarkIllustrationPending());
+
+  public void AttachIllustration(int chapterNumber, string imageUrl)
   {
     if (string.IsNullOrWhiteSpace(imageUrl))
     {
+      MarkIllustrationFailed(chapterNumber);
       return;
     }
 
+    WithChapter(chapterNumber, c => c.AttachIllustration(imageUrl));
+  }
+
+  public void MarkIllustrationFailed(int chapterNumber) =>
+      WithChapter(chapterNumber, c => c.MarkIllustrationFailed());
+
+  private void WithChapter(int chapterNumber, Action<AdventureChapter> action)
+  {
     lock (_gate)
     {
-      var scene = _scenes.FirstOrDefault(s => s.SceneNumber == sceneNumber);
-      scene?.AttachImage(imageUrl);
+      var chapter = _chapters.FirstOrDefault(c => c.Number == chapterNumber);
+      if (chapter is not null)
+      {
+        action(chapter);
+      }
     }
   }
 
-  /// <summary>
-  /// Illustre l'issue déjà fixée par <see cref="SetOutcome"/> (image générée a posteriori en
-  /// arrière-plan). Ne fait rien si aucune issue n'est encore fixée ou si l'URL est vide.
-  /// </summary>
-  public void AttachImageToOutcome(string imageUrl)
+  private AdventureChapter EnsureCanActOn(int fromChapterNumber)
   {
-    if (string.IsNullOrWhiteSpace(imageUrl))
+    if (IsCompleted)
     {
-      return;
+      throw new StoryConflictException("L'histoire est terminée.");
     }
 
-    lock (_gate)
+    EnsureNoPendingTransition();
+
+    if (_chapters.Count == 0)
     {
-      if (Outcome is not null)
-      {
-        Outcome = Outcome.WithImage(imageUrl);
-      }
+      throw new StoryConflictException("L'histoire n'a pas encore commencé.");
     }
+
+    var frontier = _chapters[^1];
+    if (fromChapterNumber != frontier.Number)
+    {
+      throw new StoryConflictException(
+          $"Le chapitre {fromChapterNumber} n'est pas le chapitre courant (chapitre courant : {frontier.Number}).");
+    }
+
+    return frontier;
+  }
+
+  private void EnsureNoPendingTransition()
+  {
+    if (_pendingTransition is not null)
+    {
+      throw new StoryConflictException("Le chapitre suivant est déjà en cours d'écriture.");
+    }
+  }
+
+  private ChapterTransition Reserve(int fromChapterNumber, ChapterChoice? selectedChoice)
+  {
+    var next = fromChapterNumber + 1;
+    _pendingTransition = new ChapterTransition(fromChapterNumber, next, Schedule.KindOf(next), selectedChoice);
+    return _pendingTransition;
   }
 }

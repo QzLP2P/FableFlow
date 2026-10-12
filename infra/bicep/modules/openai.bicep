@@ -19,6 +19,15 @@ param chatModelVersion string
 @description('Capacité (unités de débit) du déploiement de chat.')
 param chatCapacity int = 10
 
+@description('Nom du déploiement du modèle rapide qui propose les idées de départ (ex. gpt-5.4-nano).')
+param premiseModelName string = 'gpt-5.4-nano'
+
+@description('Version du modèle des idées de départ.')
+param premiseModelVersion string = '2026-03-17'
+
+@description('Capacité (unités de débit) du déploiement des idées de départ.')
+param premiseCapacity int = 10
+
 @description('Nom du déploiement du modèle de génération d\'image (ex. FLUX.2-pro).')
 param imageModelName string = 'FLUX.2-pro'
 
@@ -66,6 +75,27 @@ resource chatDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-1
   }
 }
 
+// Les déploiements d'un même compte doivent être créés l'un après l'autre (sinon conflit
+// "another operation is being performed on the parent resource").
+resource premiseDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
+  parent: account
+  name: premiseModelName
+  sku: {
+    name: 'GlobalStandard'
+    capacity: premiseCapacity
+  }
+  properties: {
+    model: {
+      format: 'OpenAI'
+      name: premiseModelName
+      version: premiseModelVersion
+    }
+  }
+  dependsOn: [
+    chatDeployment
+  ]
+}
+
 resource imageDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
   parent: account
   name: imageModelName
@@ -81,7 +111,7 @@ resource imageDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-
     }
   }
   dependsOn: [
-    chatDeployment
+    premiseDeployment
   ]
 }
 
@@ -116,3 +146,12 @@ output foundryEndpoint string = 'https://${account.name}.services.ai.azure.com/'
 
 @description('Id de ressource du compte Foundry.')
 output accountId string = account.id
+
+@description('Nom du déploiement qui écrit les chapitres.')
+output chatDeploymentName string = chatDeployment.name
+
+@description('Nom du déploiement qui propose les idées de départ.')
+output premiseDeploymentName string = premiseDeployment.name
+
+@description('Nom du déploiement FLUX des illustrations.')
+output imageDeploymentName string = imageDeployment.name

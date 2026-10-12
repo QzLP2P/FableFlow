@@ -1,10 +1,8 @@
 namespace FableFlow.Domain.Enums;
 
-/// <summary>Statut du cycle de vie d'une session d'aventure.</summary>
+/// <summary>Statut du cycle de vie d'une histoire : en cours ou terminée par sa conclusion narrative.</summary>
 public enum SessionStatus
 {
   InProgress = 0,
-  Won = 1,
-  Lost = 2,
-  Completed = 3
+  Completed = 1
 }

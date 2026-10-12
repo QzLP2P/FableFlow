@@ -8,274 +8,358 @@ namespace FableFlow.Domain.Tests.Entities;
 public class AdventureSessionTests
 {
   [Fact]
-  public void Start_WithValidArguments_CreatesInProgressSession()
+  public void Start_WithValidArguments_CreatesInProgressSessionWithSnapshot()
   {
-    var session = AdventureSession.Start(Guid.NewGuid(), "pokemon", targetSceneCount: 5);
+    var hero = HeroProfile.Create("Léa", 5, ["Max, son chien"], interests: "les étoiles");
+
+    var session = AdventureSession.Start(
+        Guid.NewGuid(), "dinosaur", hero, ReaderMode.ChildReader, StoryLength.Short, "  Un œuf mystérieux  ", "L'œuf");
 
     session.Status.Should().Be(SessionStatus.InProgress);
-    session.ThemeId.Should().Be("pokemon");
-    session.TargetSceneCount.Should().Be(5);
-    session.BadChoiceCount.Should().Be(0);
-    session.CurrentSceneNumber.Should().Be(0);
-    session.NarrativePremise.Should().BeNull();
-  }
-
-  [Fact]
-  public void Start_WithNarrativePremise_StoresIt()
-  {
-    var session = AdventureSession.Start(
-        Guid.NewGuid(),
-        "pokemon",
-        targetSceneCount: 5,
-        narrativePremise: "Un tournoi régional où un rival mystérieux sème le trouble.");
-
-    session.NarrativePremise.Should().Be("Un tournoi régional où un rival mystérieux sème le trouble.");
+    session.Hero.Should().BeSameAs(hero);
+    session.ReaderMode.Should().Be(ReaderMode.ChildReader);
+    session.Length.Should().Be(StoryLength.Short);
+    session.TotalChapters.Should().Be(6);
+    session.Premise.Should().Be("Un œuf mystérieux");
+    session.Title.Should().Be("L'œuf");
+    session.CurrentChapterNumber.Should().Be(0);
+    session.CurrentChapter.Should().BeNull();
   }
 
   [Theory]
-  [InlineData(1)]
-  [InlineData(2)]
-  [InlineData(21)]
-  public void Start_WithSceneCountOutOfRange_Throws(int sceneCount)
+  [InlineData(null)]
+  [InlineData("")]
+  [InlineData("   ")]
+  public void Start_WithoutPremise_Throws(string? premise)
   {
-    var act = () => AdventureSession.Start(Guid.NewGuid(), "pokemon", sceneCount);
+    var act = () => AdventureSession.Start(
+        Guid.NewGuid(), "dinosaur", Hero(), ReaderMode.AdultReadAloud, StoryLength.Short, premise!);
 
     act.Should().Throw<DomainException>();
   }
 
   [Fact]
-  public void Start_WithEmptyTheme_Throws()
+  public void Start_WithTooLongPremise_Throws()
   {
-    var act = () => AdventureSession.Start(Guid.NewGuid(), string.Empty, targetSceneCount: 5);
+    var act = () => AdventureSession.Start(
+        Guid.NewGuid(), "dinosaur", Hero(), ReaderMode.AdultReadAloud, StoryLength.Short,
+        new string('a', AdventureSession.MaxPremiseLength + 1));
 
     act.Should().Throw<DomainException>();
   }
 
-  [Fact]
-  public void AttachScene_WithExpectedSceneNumber_AdvancesCurrentSceneNumber()
+  [Theory]
+  [InlineData(StoryLength.Short, 6)]
+  [InlineData(StoryLength.Longer, 10)]
+  public void FullStory_FollowsScheduleAndCompletesOnEndingChapter(StoryLength length, int expectedChapters)
   {
-    var session = AdventureSession.Start(Guid.NewGuid(), "pokemon", targetSceneCount: 5);
-    var scene = CreateScene(sceneNumber: 1);
+    var session = NewSession(length);
 
-    session.AttachScene(scene);
+    PlayToEnd(session);
 
-    session.CurrentSceneNumber.Should().Be(1);
-    session.CurrentScene.Should().Be(scene);
-  }
-
-  [Fact]
-  public void AttachScene_WithUnexpectedSceneNumber_Throws()
-  {
-    var session = AdventureSession.Start(Guid.NewGuid(), "pokemon", targetSceneCount: 5);
-    var scene = CreateScene(sceneNumber: 2);
-
-    var act = () => session.AttachScene(scene);
-
-    act.Should().Throw<DomainException>();
-  }
-
-  [Fact]
-  public void RecordChoice_WithGoodChoiceBeforeLastScene_RequiresNextScene()
-  {
-    var session = AdventureSession.Start(Guid.NewGuid(), "pokemon", targetSceneCount: 3);
-    session.AttachScene(CreateScene(sceneNumber: 1));
-
-    var result = session.RecordChoice("good");
-
-    result.RequiresNextScene.Should().BeTrue();
-    result.IsTerminal.Should().BeFalse();
-    session.Status.Should().Be(SessionStatus.InProgress);
-    session.BadChoiceCount.Should().Be(0);
-  }
-
-  [Fact]
-  public void RecordChoice_ReachingTargetSceneWithNoBadChoices_ResultsInWon()
-  {
-    var session = AdventureSession.Start(Guid.NewGuid(), "pokemon", targetSceneCount: 3);
-    session.AttachScene(CreateScene(sceneNumber: 1));
-    session.RecordChoice("good");
-    session.AttachScene(CreateScene(sceneNumber: 2));
-    session.RecordChoice("good");
-    session.AttachScene(CreateScene(sceneNumber: 3));
-
-    var result = session.RecordChoice("good");
-
-    result.IsTerminal.Should().BeTrue();
-    session.Status.Should().Be(SessionStatus.Won);
-  }
-
-  [Fact]
-  public void RecordChoice_ReachingTargetSceneWithSomeBadChoices_ResultsInCompleted()
-  {
-    var session = AdventureSession.Start(Guid.NewGuid(), "pokemon", targetSceneCount: 3, maxBadChoices: 3);
-    session.AttachScene(CreateScene(sceneNumber: 1));
-    session.RecordChoice("bad");
-    session.AttachScene(CreateScene(sceneNumber: 2));
-    session.RecordChoice("good");
-    session.AttachScene(CreateScene(sceneNumber: 3));
-
-    var result = session.RecordChoice("good");
-
-    result.IsTerminal.Should().BeTrue();
+    session.Chapters.Should().HaveCount(expectedChapters);
     session.Status.Should().Be(SessionStatus.Completed);
+    session.Chapters[0].Kind.Should().Be(ChapterKind.Narrative);
+    session.Chapters[^1].Kind.Should().Be(ChapterKind.Ending);
+    session.Chapters[0].Choices.Should().BeEmpty();
+    session.Chapters[^1].Choices.Should().BeEmpty();
+    session.Chapters.Where(c => c.Kind == ChapterKind.Decision)
+        .Should().OnlyContain(c => c.SelectedChoiceId != null);
   }
 
   [Fact]
-  public void RecordChoice_ReachingMaxBadChoices_ResultsInLostBeforeTargetScene()
+  public void BeginOpening_TwiceWhilePending_IsRejected()
   {
-    var session = AdventureSession.Start(Guid.NewGuid(), "pokemon", targetSceneCount: 10, maxBadChoices: 2);
-    session.AttachScene(CreateScene(sceneNumber: 1));
-    session.RecordChoice("bad");
-    session.AttachScene(CreateScene(sceneNumber: 2));
+    var session = NewSession();
+    session.BeginOpening();
 
-    var result = session.RecordChoice("bad");
+    var act = () => session.BeginOpening();
 
-    result.IsTerminal.Should().BeTrue();
-    result.RequiresNextScene.Should().BeFalse();
-    session.Status.Should().Be(SessionStatus.Lost);
-    session.CurrentSceneNumber.Should().Be(2);
-    session.TargetSceneCount.Should().Be(10);
+    act.Should().Throw<StoryConflictException>();
   }
 
   [Fact]
-  public void RecordChoice_WithUnknownChoiceId_Throws()
+  public void BeginOpening_AfterStoryStarted_IsRejected()
   {
-    var session = AdventureSession.Start(Guid.NewGuid(), "pokemon", targetSceneCount: 3);
-    session.AttachScene(CreateScene(sceneNumber: 1));
+    var session = NewSession();
+    Open(session);
 
-    var act = () => session.RecordChoice("does-not-exist");
+    var act = () => session.BeginOpening();
+
+    act.Should().Throw<StoryConflictException>();
+  }
+
+  [Fact]
+  public void BeginAdvance_OnNarrativeFrontier_ReservesNextChapterOfScheduledKind()
+  {
+    var session = NewSession(StoryLength.Short);
+    Open(session);
+
+    var transition = session.BeginAdvance(1);
+
+    transition.FromChapterNumber.Should().Be(1);
+    transition.NextChapterNumber.Should().Be(2);
+    transition.NextKind.Should().Be(ChapterKind.Decision);
+    transition.SelectedChoice.Should().BeNull();
+    session.IsGenerating.Should().BeTrue();
+  }
+
+  [Fact]
+  public void BeginAdvance_OnDecisionChapter_IsRejectedAsWrongAction()
+  {
+    var session = NewSession(StoryLength.Short);
+    Open(session);
+    Advance(session); // chapitre 2 = moment de choix
+
+    var act = () => session.BeginAdvance(2);
+
+    act.Should().Throw<StoryConflictException>().WithMessage("*choix*");
+  }
+
+  [Fact]
+  public void BeginChoice_OnNarrativeChapter_IsRejectedAsWrongAction()
+  {
+    var session = NewSession(StoryLength.Short);
+    Open(session);
+
+    var act = () => session.BeginChoice(1, "a");
+
+    act.Should().Throw<StoryConflictException>();
+  }
+
+  [Fact]
+  public void BeginAdvance_FromStaleChapter_IsRejectedAsDuplicate()
+  {
+    var session = NewSession(StoryLength.Longer);
+    Open(session);
+    Advance(session); // frontière = 2
+
+    var act = () => session.BeginAdvance(1);
+
+    act.Should().Throw<StoryConflictException>().WithMessage("*chapitre courant*");
+  }
+
+  [Fact]
+  public void BeginAdvance_WhileGenerationPending_IsRejected()
+  {
+    var session = NewSession();
+    Open(session);
+    session.BeginAdvance(1);
+
+    var act = () => session.BeginAdvance(1);
+
+    act.Should().Throw<StoryConflictException>().WithMessage("*en cours*");
+  }
+
+  [Fact]
+  public void BeginChoice_WithUnknownChoice_Throws()
+  {
+    var session = NewSession(StoryLength.Short);
+    Open(session);
+    Advance(session);
+
+    var act = () => session.BeginChoice(2, "zzz");
 
     act.Should().Throw<DomainException>();
+    session.IsGenerating.Should().BeFalse();
   }
 
   [Fact]
-  public void RecordChoice_OnFinishedSession_Throws()
+  public void CompleteTransition_AfterChoice_RecordsChoiceOnlyWhenNextChapterIsAttached()
   {
-    var session = CreateWonSession();
+    var session = NewSession(StoryLength.Short);
+    Open(session);
+    Advance(session);
 
-    var act = () => session.RecordChoice("good");
+    var transition = session.BeginChoice(2, "B");
+    session.Chapters[1].SelectedChoiceId.Should().BeNull();
+
+    session.CompleteTransition(transition, ChapterFor(transition));
+
+    session.Chapters[1].SelectedChoiceId.Should().Be("b");
+    session.Chapters[1].SelectedChoice!.Label.Should().Be("Suivre le papillon");
+    session.CurrentChapterNumber.Should().Be(3);
+  }
+
+  [Fact]
+  public void AbandonTransition_AfterFailure_KeepsStateAndAllowsRetry()
+  {
+    var session = NewSession(StoryLength.Short);
+    Open(session);
+    Advance(session);
+    var failed = session.BeginChoice(2, "a");
+
+    session.AbandonTransition(failed);
+
+    session.CurrentChapterNumber.Should().Be(2);
+    session.Chapters[1].SelectedChoiceId.Should().BeNull();
+    session.IsGenerating.Should().BeFalse();
+
+    var retry = session.BeginChoice(2, "b");
+    session.CompleteTransition(retry, ChapterFor(retry));
+    session.Chapters[1].SelectedChoiceId.Should().Be("b");
+  }
+
+  [Fact]
+  public void CompleteTransition_WithAbandonedToken_IsRejected()
+  {
+    var session = NewSession();
+    var transition = session.BeginOpening();
+    session.AbandonTransition(transition);
+
+    var act = () => session.CompleteTransition(transition, ChapterFor(transition));
+
+    act.Should().Throw<StoryConflictException>();
+    session.Chapters.Should().BeEmpty();
+  }
+
+  [Fact]
+  public void CompleteTransition_WithChapterOfWrongKind_IsRejectedAndKeepsReservation()
+  {
+    var session = NewSession(StoryLength.Short);
+    Open(session);
+    var transition = session.BeginAdvance(1); // attend un moment de choix
+
+    var act = () => session.CompleteTransition(
+        transition, new AdventureChapter(2, ChapterKind.Narrative, "Texte", []));
 
     act.Should().Throw<DomainException>();
+    session.CurrentChapterNumber.Should().Be(1);
   }
 
   [Fact]
-  public void SetOutcome_WithMismatchedStatus_Throws()
+  public void BeginAdvance_AfterCompletion_IsRejected()
   {
-    var session = CreateWonSession();
+    var session = NewSession(StoryLength.Short);
+    PlayToEnd(session);
 
-    var act = () => session.SetOutcome(AdventureOutcome.Lost("message"));
+    var act = () => session.BeginAdvance(6);
 
-    act.Should().Throw<DomainException>();
+    act.Should().Throw<StoryConflictException>().WithMessage("*terminée*");
   }
 
   [Fact]
-  public void SetOutcome_WithMatchingStatus_SetsOutcome()
+  public void BeginChoice_OnAlreadyChosenChapter_IsRejectedAsDuplicate()
   {
-    var session = CreateWonSession();
+    var session = NewSession(StoryLength.Short);
+    Open(session);
+    Advance(session);
+    Choose(session, 2, "a");
 
-    session.SetOutcome(AdventureOutcome.Won("Bravo !"));
+    var act = () => session.BeginChoice(2, "a");
 
-    session.Outcome.Should().NotBeNull();
-    session.Outcome!.Message.Should().Be("Bravo !");
+    act.Should().Throw<StoryConflictException>();
   }
 
   [Fact]
-  public void SetStoryOutline_WithNonEmptyOutline_StoresIt()
+  public void Illustrations_TrackPendingReadyAndFailedStates()
   {
-    var session = AdventureSession.Start(Guid.NewGuid(), "pokemon", targetSceneCount: 5);
+    var session = NewSession(StoryLength.Short);
+    Open(session);
+    Advance(session);
 
-    session.SetStoryOutline(["Introduction", "Complication", "Dénouement"]);
+    session.MarkIllustrationPending(1);
+    session.MarkIllustrationPending(2);
+    session.AttachIllustration(1, "https://img/1.png");
+    session.MarkIllustrationFailed(2);
+    session.MarkIllustrationFailed(1);
 
-    session.StoryOutline.Should().Equal("Introduction", "Complication", "Dénouement");
+    session.Chapters[0].IllustrationStatus.Should().Be(IllustrationStatus.Ready);
+    session.Chapters[0].ImageUrl.Should().Be("https://img/1.png");
+    session.Chapters[1].IllustrationStatus.Should().Be(IllustrationStatus.Failed);
+    session.Chapters[1].ImageUrl.Should().BeNull();
   }
 
   [Fact]
-  public void SetStoryOutline_WithEmptyOutline_LeavesStoryOutlineEmpty()
+  public void SetTitleIfMissing_DoesNotOverrideChosenTitle()
   {
-    var session = AdventureSession.Start(Guid.NewGuid(), "pokemon", targetSceneCount: 5);
+    var session = AdventureSession.Start(
+        Guid.NewGuid(), "vet", Hero(), ReaderMode.AdultReadAloud, StoryLength.Short, "Idée", "Titre choisi");
 
-    session.SetStoryOutline([]);
+    session.SetTitleIfMissing("Autre titre");
 
-    session.StoryOutline.Should().BeEmpty();
+    session.Title.Should().Be("Titre choisi");
   }
 
   [Fact]
-  public void StoryOutline_BeforeBeingSet_IsEmpty()
+  public void SetTitleIfMissing_FillsTitleForCustomIdea()
   {
-    var session = AdventureSession.Start(Guid.NewGuid(), "pokemon", targetSceneCount: 5);
+    var session = NewSession();
 
-    session.StoryOutline.Should().BeEmpty();
+    session.SetTitleIfMissing("  La forêt qui chante ");
+
+    session.Title.Should().Be("La forêt qui chante");
   }
 
   [Fact]
-  public void AttachImageToScene_WithExistingSceneNumber_AttachesImageEvenIfNotCurrentScene()
+  public void UpdateMemory_KeepsPreviousValuesWhenEmptyAndBoundsKeyFacts()
   {
-    var session = AdventureSession.Start(Guid.NewGuid(), "pokemon", targetSceneCount: 5);
-    session.AttachScene(CreateScene(sceneNumber: 1));
-    session.RecordChoice("good");
-    session.AttachScene(CreateScene(sceneNumber: 2));
+    var session = NewSession();
+    session.UpdateMemory("Résumé", Enumerable.Range(1, 20).Select(i => $"fait {i}"));
 
-    // L'image de la scène 1 arrive alors que la scène 2 est déjà la scène courante (génération
-    // asynchrone en arrière-plan) : elle doit tout de même être attachée à la bonne scène.
-    session.AttachImageToScene(1, "https://images.example/scene-1.png");
+    session.UpdateMemory("  ", []);
 
-    session.Scenes.Single(s => s.SceneNumber == 1).ImageUrl.Should().Be("https://images.example/scene-1.png");
-    session.CurrentScene!.ImageUrl.Should().BeNull();
+    session.RunningSummary.Should().Be("Résumé");
+    session.KeyFacts.Should().HaveCount(AdventureSession.MaxKeyFacts);
   }
 
   [Fact]
-  public void AttachImageToScene_WithUnknownSceneNumber_DoesNothing()
+  public void SetStoryOutline_IsFixedOnce()
   {
-    var session = AdventureSession.Start(Guid.NewGuid(), "pokemon", targetSceneCount: 5);
-    session.AttachScene(CreateScene(sceneNumber: 1));
+    var session = NewSession();
 
-    var act = () => session.AttachImageToScene(99, "https://images.example/scene.png");
+    session.SetStoryOutline(["Début", "Fin"]);
+    session.SetStoryOutline(["Autre"]);
 
-    act.Should().NotThrow();
+    session.StoryOutline.Should().Equal("Début", "Fin");
   }
 
-  [Fact]
-  public void AttachImageToOutcome_AfterSetOutcome_AttachesImageToExistingOutcome()
-  {
-    var session = CreateWonSession();
-    session.SetOutcome(AdventureOutcome.Won("Bravo !"));
+  private static HeroProfile Hero() => HeroProfile.Create("Léa", 6);
 
-    session.AttachImageToOutcome("https://images.example/outcome.png");
+  private static AdventureSession NewSession(StoryLength length = StoryLength.Short) =>
+      AdventureSession.Start(Guid.NewGuid(), "dinosaur", Hero(), ReaderMode.AdultReadAloud, length, "Un œuf mystérieux");
 
-    session.Outcome!.ImageUrl.Should().Be("https://images.example/outcome.png");
-    session.Outcome!.Message.Should().Be("Bravo !");
-  }
-
-  [Fact]
-  public void AttachImageToOutcome_BeforeOutcomeIsSet_DoesNothing()
-  {
-    var session = AdventureSession.Start(Guid.NewGuid(), "pokemon", targetSceneCount: 3);
-
-    var act = () => session.AttachImageToOutcome("https://images.example/outcome.png");
-
-    act.Should().NotThrow();
-    session.Outcome.Should().BeNull();
-  }
-
-  /// <summary>Fait progresser une session de 3 scènes jusqu'à la victoire (choix systématiquement bons).</summary>
-  private static AdventureSession CreateWonSession()
-  {
-    var session = AdventureSession.Start(Guid.NewGuid(), "pokemon", targetSceneCount: 3);
-    session.AttachScene(CreateScene(sceneNumber: 1));
-    session.RecordChoice("good");
-    session.AttachScene(CreateScene(sceneNumber: 2));
-    session.RecordChoice("good");
-    session.AttachScene(CreateScene(sceneNumber: 3));
-    session.RecordChoice("good");
-    return session;
-  }
-
-  private static AdventureScene CreateScene(int sceneNumber) =>
+  private static AdventureChapter ChapterFor(ChapterTransition transition) =>
       new(
-          sceneNumber,
-          $"Texte de la scène {sceneNumber}",
-          [
-              new SceneChoice("good", "Faire le bon choix", ChoiceOutcome.Good),
-                new SceneChoice("bad", "Faire le mauvais choix", ChoiceOutcome.Bad)
-          ]);
+          transition.NextChapterNumber,
+          transition.NextKind,
+          $"Chapitre {transition.NextChapterNumber}",
+          transition.NextKind == ChapterKind.Decision
+              ? [new ChapterChoice("a", "Entrer dans la grotte"), new ChapterChoice("b", "Suivre le papillon")]
+              : []);
+
+  private static void Open(AdventureSession session)
+  {
+    var transition = session.BeginOpening();
+    session.CompleteTransition(transition, ChapterFor(transition));
+  }
+
+  private static void Advance(AdventureSession session)
+  {
+    var transition = session.BeginAdvance(session.CurrentChapterNumber);
+    session.CompleteTransition(transition, ChapterFor(transition));
+  }
+
+  private static void Choose(AdventureSession session, int chapterNumber, string choiceId)
+  {
+    var transition = session.BeginChoice(chapterNumber, choiceId);
+    session.CompleteTransition(transition, ChapterFor(transition));
+  }
+
+  private static void PlayToEnd(AdventureSession session)
+  {
+    Open(session);
+    while (!session.IsCompleted)
+    {
+      var current = session.CurrentChapter!;
+      if (current.Kind == ChapterKind.Decision)
+      {
+        Choose(session, current.Number, "a");
+      }
+      else
+      {
+        Advance(session);
+      }
+    }
+  }
 }

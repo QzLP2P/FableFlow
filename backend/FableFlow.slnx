@@ -9,5 +9,6 @@
     <Project Path="tests/FableFlow.Api.Tests/FableFlow.Api.Tests.csproj" />
     <Project Path="tests/FableFlow.Application.Tests/FableFlow.Application.Tests.csproj" />
     <Project Path="tests/FableFlow.Domain.Tests/FableFlow.Domain.Tests.csproj" />
+    <Project Path="tests/FableFlow.Infrastructure.Tests/FableFlow.Infrastructure.Tests.csproj" />
   </Folder>
 </Solution>

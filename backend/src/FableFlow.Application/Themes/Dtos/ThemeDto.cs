@@ -1,8 +1,8 @@
 namespace FableFlow.Application.Themes.Dtos;
 
-/// <summary>Thème disponible exposé par l'API.</summary>
+/// <summary>Univers disponible exposé par l'API.</summary>
+/// <param name="Description">Courte présentation, sans divulgation d'intrigue.</param>
 public sealed record ThemeDto(
     string Id,
     string DisplayName,
-    string Audience,
-    string VocabularyLevel);
+    string Description);

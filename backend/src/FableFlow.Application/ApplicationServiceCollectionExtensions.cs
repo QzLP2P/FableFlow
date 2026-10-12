@@ -21,7 +21,8 @@ public static class ApplicationServiceCollectionExtensions
     services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
     services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
 
-    services.AddSingleton<ISceneImageJobScheduler, SceneImageJobScheduler>();
+    services.AddSingleton<IChapterImageJobScheduler, ChapterImageJobScheduler>();
+    services.AddScoped<IChapterWriter, ChapterWriter>();
 
     return services;
   }

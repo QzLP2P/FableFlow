@@ -27,7 +27,7 @@ public sealed class FluxImageGenerationService : IImageGenerationService
   // (limitation de débit) sont donc fréquents en usage normal, constatés en pratique via les
   // dépendances Application Insights. On retente quelques fois avant d'abandonner, en respectant
   // l'en-tête "Retry-After" du serveur quand il est présent. Sans impact sur la réponse HTTP au
-  // client : tout ceci se déroule dans le travail en arrière-plan (voir ISceneImageJobScheduler).
+  // client : tout ceci se déroule dans le travail en arrière-plan (voir IChapterImageJobScheduler).
   private const int MaxThrottleRetries = 2;
   private static readonly TimeSpan DefaultThrottleDelay = TimeSpan.FromSeconds(3);
   private static readonly TimeSpan MaxThrottleDelay = TimeSpan.FromSeconds(15);

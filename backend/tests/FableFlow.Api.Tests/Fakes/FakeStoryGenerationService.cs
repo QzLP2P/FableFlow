@@ -5,36 +5,38 @@ using FableFlow.Domain.Enums;
 namespace FableFlow.Api.Tests.Fakes;
 
 /// <summary>
-/// Génération narrative déterministe pour les tests d'intégration, évitant tout appel réseau
-/// vers Azure OpenAI. Propose toujours un choix "a" (bon) et "b" (mauvais) pour piloter
-/// précisément victoire/défaite dans les tests.
+/// Génération déterministe pour les tests d'intégration, sans appel réseau vers Azure OpenAI.
+/// Respecte le contrat attendu selon la nature du chapitre (actions uniquement pour un moment de
+/// choix) ; un marqueur dans l'idée d'histoire permet de simuler une panne du fournisseur.
 /// </summary>
 public sealed class FakeStoryGenerationService : IStoryGenerationService
 {
-  public Task<GeneratedScene> GenerateSceneAsync(StoryPrompt prompt, CancellationToken cancellationToken)
+  /// <summary>Fait échouer la génération à partir du chapitre 2 lorsqu'il figure dans l'idée d'histoire.</summary>
+  public const string FailFromChapterTwoMarker = "PANNE-CHAPITRE-2";
+
+  public Task<GeneratedChapter> GenerateChapterAsync(StoryPrompt prompt, CancellationToken cancellationToken)
   {
-    if (prompt.Kind == SceneKind.Ending)
+    if (prompt.ChapterNumber >= 2 && prompt.UserPrompt.Contains(FailFromChapterTwoMarker, StringComparison.Ordinal))
     {
-      return Task.FromResult(new GeneratedScene(
-          $"Fin de l'aventure (après la scène {prompt.SceneNumber}).",
-          [],
-          "Résumé final de l'aventure.",
-          [],
-          "Description générique de la scène finale."));
+      throw new HttpRequestException("Fournisseur indisponible (simulé) : détail interne à ne jamais exposer.");
     }
 
-    GeneratedChoice[] choices =
-    [
-        new("a", "Faire le bon choix", ChoiceOutcome.Good),
-            new("b", "Faire le mauvais choix", ChoiceOutcome.Bad)
-    ];
+    GeneratedChoice[] choices = prompt.Kind == ChapterKind.Decision
+        ? [new("a", "Suivre la piste lumineuse"), new("b", "Demander de l'aide à un ami"), new("c", "Observer en silence")]
+        : [];
 
-    return Task.FromResult(new GeneratedScene(
-        $"Texte généré pour la scène {prompt.SceneNumber}.",
+    var text = prompt.Kind == ChapterKind.Ending
+        ? $"Conclusion chaleureuse de l'histoire (chapitre {prompt.ChapterNumber})."
+        : $"Texte du chapitre {prompt.ChapterNumber}.\n\nDeuxième paragraphe.";
+
+    return Task.FromResult(new GeneratedChapter(
+        text,
         choices,
-        $"Résumé jusqu'à la scène {prompt.SceneNumber}.",
-        [],
-        "Description générique de la scène."));
+        $"Résumé jusqu'au chapitre {prompt.ChapterNumber}.",
+        [$"Fait du chapitre {prompt.ChapterNumber}"],
+        "Un enfant héros dans un décor lumineux.",
+        prompt.ChapterNumber == 1 ? ["Début", "Aventure", "Retour à la maison"] : null,
+        prompt.ChapterNumber == 1 ? "Titre généré" : null));
   }
 
   public Task<IReadOnlyList<GeneratedPremise>> GeneratePremisesAsync(

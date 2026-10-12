@@ -8,7 +8,7 @@ namespace FableFlow.Infrastructure.Ai.Contracts;
 /// SDK figée par ce projet (ex. "reasoning_effort", disponible côté API pour les modèles de
 /// raisonnement type gpt-5.x mais absent d'Azure.AI.OpenAI 2.1.0 — voir
 /// <see cref="AzureOpenAIStoryGenerationService"/>). Les noms de champs suivent la convention
-/// snake_case de l'API REST, contrairement aux contrats <see cref="RawGeneratedScene"/> qui
+/// snake_case de l'API REST, contrairement aux contrats <see cref="RawGeneratedChapter"/> qui
 /// décrivent le JSON que NOUS demandons au LLM de produire (camelCase).
 /// </summary>
 public sealed class RawChatCompletionRequest
@@ -37,12 +37,13 @@ public sealed class RawChatCompletionRequest
   public float? FrequencyPenalty { get; set; }
 
   /// <summary>
-  /// Effort de raisonnement demandé au modèle (ex. "minimal" | "low" | "medium" | "high" selon
-  /// l'API). Réduit la latence pour une tâche d'écriture créative qui n'a pas besoin d'un
+  /// Effort de raisonnement demandé au modèle (ex. "none" | "low" | "medium" | "high" selon le
+  /// modèle). Réduit la latence pour une tâche d'écriture créative qui n'a pas besoin d'un
   /// raisonnement multi-étapes approfondi. <c>null</c> pour ne pas envoyer ce champ (modèle qui ne
   /// le supporte pas).
   /// </summary>
   [JsonPropertyName("reasoning_effort")]
+  [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
   public string? ReasoningEffort { get; set; }
 }
 

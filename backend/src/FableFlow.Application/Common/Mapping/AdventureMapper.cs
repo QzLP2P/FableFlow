@@ -1,6 +1,7 @@
 using FableFlow.Application.Adventures.Dtos;
 using FableFlow.Application.Themes.Dtos;
 using FableFlow.Domain.Entities;
+using FableFlow.Domain.Enums;
 
 namespace FableFlow.Application.Common.Mapping;
 
@@ -8,34 +9,63 @@ namespace FableFlow.Application.Common.Mapping;
 public static class AdventureMapper
 {
   public static ThemeDto ToDto(this ThemeDefinition theme) =>
-      new(theme.Id, theme.DisplayName, theme.Audience.ToString(), theme.VocabularyLevel.ToString());
+      new(theme.Id, theme.DisplayName, theme.Description);
 
-  public static SceneDto ToDto(this AdventureScene scene) =>
-      new(
-          scene.SceneNumber,
-          scene.Text,
-          scene.ImageUrl,
-          [.. scene.Choices.Select(c => new ChoiceDto(c.Id, c.Label))]);
+  public static HeroDto ToDto(this HeroProfile hero) =>
+      new(hero.Name, hero.Age, hero.Companions, hero.Interests, hero.Personality, hero.Appearance);
 
-  public static AdventureDto ToDto(this AdventureSession session, bool imageGenerationEnabled)
-  {
-    // La scène courante n'est proposée que si l'aventure est en cours.
-    var currentScene = session.IsFinished ? null : session.CurrentScene?.ToDto();
-
-    return new AdventureDto(
-        session.Id,
-        session.Status.ToString(),
-        session.CurrentSceneNumber,
-        session.TargetSceneCount,
-        currentScene,
-        session.Outcome?.Message,
-        session.Outcome?.ImageUrl,
-        imageGenerationEnabled);
-  }
-
-  public static AdventureHistoryDto ToHistoryDto(this AdventureSession session) =>
+  public static AdventureDto ToDto(this AdventureSession session, bool imageGenerationEnabled) =>
       new(
           session.Id,
-          session.Status.ToString(),
-          [.. session.Scenes.Select(s => s.ToDto())]);
+          session.Status,
+          session.Title,
+          session.ThemeId,
+          session.Premise,
+          session.Length,
+          session.ReaderMode,
+          session.Hero.ToDto(),
+          session.TotalChapters,
+          session.Schedule.DecisionChapters,
+          session.CurrentChapterNumber,
+          session.IsGenerating,
+          imageGenerationEnabled,
+          [.. session.Chapters.Select(ToDto)]);
+
+  public static AdventureHistoryDto ToHistoryDto(this AdventureSession session)
+  {
+    var chapters = session.Chapters;
+    var ending = chapters.FirstOrDefault(c => c.Kind == ChapterKind.Ending);
+
+    return new AdventureHistoryDto(
+        session.Id,
+        session.Status,
+        session.Title,
+        session.ThemeId,
+        session.Premise,
+        session.Length,
+        session.ReaderMode,
+        session.Hero.ToDto(),
+        session.TotalChapters,
+        [.. chapters.Select(c => new HistoryChapterDto(
+            c.Number,
+            c.Kind,
+            c.Text,
+            c.SelectedChoice?.Label,
+            c.ToIllustrationDto()))],
+        ending?.Text);
+  }
+
+  private static ChapterDto ToDto(AdventureChapter chapter) =>
+      new(
+          chapter.Number,
+          chapter.Kind,
+          chapter.Text,
+          [.. chapter.Choices.Select(c => new ChoiceDto(c.Id, c.Label))],
+          chapter.SelectedChoiceId,
+          chapter.ToIllustrationDto());
+
+  private static IllustrationDto ToIllustrationDto(this AdventureChapter chapter) =>
+      new(
+          chapter.IllustrationStatus,
+          chapter.IllustrationStatus == IllustrationStatus.Ready ? chapter.ImageUrl : null);
 }
